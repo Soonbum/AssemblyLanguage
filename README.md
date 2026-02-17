@@ -72,7 +72,7 @@
 | RBP    | EBP    | BP     | -          | BPL        | 특수, Base Pointer를 의미하며 스택의 기준 주소를 가리킴 |
 | RSP    | ESP    | SP     | -          | SPL        | 특수, Stack Pointer를 의미하며 스택의 최상단 주소를 가리킴 (Push, Pop 할 때마다 바뀜) |
 | RIP    | EIP    | IP     | -          | IPL        | 특수, Instruction Pointer를 의미하며 CPU가 다음에 실행할 명령어가 어디 있는지 알려줌 |
-| RFLAGS | EFLAGS | FLAGS  | -          | -          | ??? |
+| RFLAGS | EFLAGS | FLAGS  | -          | -          | 특수, Flags Register를 의미하며, CPU의 현재 상태를 알려줌 |
 | R8     | R8D    | R8W    | -          | R8B        | 범용, x64에 추가됨 |
 | R9     | R9D    | R9W    | -          | R9B        | 범용, x64에 추가됨 |
 | R10    | R10D   | R10W   | -          | R10B       | 범용, x64에 추가됨 |
@@ -82,4 +82,35 @@
 | R14    | R14D   | R14W   | -          | R14B       | 범용, x64에 추가됨 |
 | R15    | R15D   | R15W   | -          | R15B       | 범용, x64에 추가됨 |
 
-* 여기서 
+* 약자의 뜻은 다음과 같음
+  - R(Register / 64비트): 64비트 레지스터
+  - E(Extended / 32비트): 16비트 시절, 32비트로 확장되었다는 의미
+  - H(High / 8비트): 16비트 레지스터의 상위 8비트를 의미
+  - L(Low / 8비트): 16비트 레지스터의 하위 8비트를 의미
+  - W(Word): 16비트 / D(Doubleword): 32비트 / B(Byte): 8비트
+
+* RFLAGS 레지스터의 각 비트별 의미
+
+| 비트 | 약어 | 이름 | 종류 | 설명 |
+| ---- | ---- | ---- | ---- | ---- |
+| 0 | CF | Carry Flag | 상태 | 부호 없는 연산에서 자리 올림/빌림 발생* |
+| 2 | PF | Parify Flag | 상태 | 결과의 하위 8비트 중 1의 개수가 짝수임 |
+| 4 | AF | Auxiliary Flag | 상태 | BCD 연산 시 하위 4비트에서 자리 올림 발생 |
+| 6 | ZF | Zero Flag | 상태 | 연산 결과가 0임* |
+| 7 | SF | Sign Flag | 상태 | 연산 결과가 음수임 (최상위 비트가 1)* |
+| 8 | TF | Trap Flag | 시스템 | 한 단계씩 실행 모드 활성화 (디버깅용) |
+| 9 | IF | Interrupt Enable | 시스템 | 외부 인터럽트(키보드 입력 등)를 처리함 |
+| 10 | DF | Direction Flag | 제어 | 문자열 처리시 주소를 감소시킴 (0이면 증가) |
+| 11 | OF | Overflag Flag | 상태 | 부호 있는 연산에서 범위 초과 발생* |
+| 12-13 | IOPL | I/O Privilege | 시스템 | 입출력 포트에 접근 가능한 권한 레벨 (0~3) |
+| 14 | NT | Nested Task | 시스템 | 현재 태스크가 다른 태스크 내부에 중첩됨 |
+| 16 | RF | Resume Flag | 시스템 | 디버그 예외 상황을 일시적으로 무시함 |
+| 17 | VM | Virtual 8086 | 시스템 | 가상 8086 모드 동작 중 |
+| 18 | AC | Alignment Check | 시스템 | 메모리 정렬 확인 기능 활성화 |
+| 21 | ID | ID Flag | 시스템 | CPUID 명령어를 지원하는지 확인용 |
+
+* RFLAGS 레지스터 조작 명령어
+  - PUSHFQ (Push Flags Quadword): 현재 RFLAGS 값을 스택에 저장합니다.
+  - POPFQ (Pop Flags Quadword): 스택에 있는 값을 RFLAGS로 복원합니다.
+  - STC / CLC: Carry Flag(CF)를 직접 1로 만들거나(Set) 0으로 만듭니다(Clear).
+  - STD / CLD: Direction Flag(DF)를 직접 설정하거나 해제합니다.
