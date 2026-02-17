@@ -26,11 +26,12 @@
  
       ```
       $ nasm -f elf64 hello.asm -o hello.o
+      $ nasm -f elf64 -g -F dwarf hello.asm -o hello.o  # 만약 GDB 디버깅을 할 경우
       $ ld hello.o -o hello
       $ ./hello
       ```
 
-    - 디버깅: gdb ./hello 실행 후 layout regs라고 입력해 보세요.
+    - 디버깅: gdb ./hello 실행 후 layout regs라고 입력해 보세요. (... 이후 내용 나중에 추가)
 
   2) VS-Code + WSL의 경우
 
@@ -40,7 +41,45 @@
 
     - 3. 'x86 and x86_64 Assembly' 확장을 설치하면 코드 하이라이팅이 지원됩니다.
 
-    - 4. **'GDB Debugger'**를 통해 레지스터 값을 실시간으로 보며 디버깅할 수 있습니다.
+    - 4. **'GDB Debugger'**를 통해 레지스터 값을 실시간으로 보며 디버깅할 수 있습니다. (... 이후 내용 나중에 추가)
 
-    - (Native Debug 확장을 설치하면 GUI 환경에서 레지스터를 실시간으로 모니터링하며 한 줄씩 실행(Step)할 수 있습니다.)
+## 레지스터의 종류 및 접두사/접미사에 따른 사이즈
 
+### 레지스터의 크기
+
+<img width="659" height="250" alt="image" src="https://github.com/user-attachments/assets/91898721-f2ba-41d2-bce4-5b834f2cc2ca" />
+
+* RAX: 64비트 전체를 사용
+
+* EAX: 64비트 중 하위 32비트를 사용
+
+* AX: 64비트 중 하위 16비트를 사용
+
+  - AH: AX에서 하위 절반의 상위 8비트를 사용
+
+  - AL: AX에서 하위 절반의 하위 8비트를 사용
+ 
+### 레지스터 종류
+
+| 64비트 | 32비트 | 16비트 | 상위 8비트 | 하위 8비트 | 용도 |
+| ------ | ------ | ------ | ---------- | ---------- | ---- |
+| RAX    | EAX    | AX     | AH         | AL         | 범용, Accumulator를 의미하며 결과값을 저장하는 곳, 리턴값을 담는 곳으로 많이 쓰임 |
+| RBX    | EBX    | BX     | BH         | BL         | 범용, Base를 의미하며 메모리의 기준점으로 자주 사용 |
+| RCX    | ECX    | CX     | CH         | CL         | 범용, Counter를 의미하며 반복문을 돈 횟수를 기록하는데 자주 사용 |
+| RDX    | EDX    | DX     | DH         | DL         | 범용, Data를 의미하며 연산 보조 및 I/O 포트 저장 등 다양한 데이터를 담는데 주로 사용 |
+| RSI    | ESI    | SI     | -          | SIL        | 범용, Source Index를 의미하며 데이터 원본 주소를 가리킴 |
+| RDI    | EDI    | DI     | -          | DIL        | 범용, Destination Index를 의미하며 데이터 도착지 주소를 가리킴 |
+| RBP    | EBP    | BP     | -          | BPL        | 특수, Base Pointer를 의미하며 스택의 기준 주소를 가리킴 |
+| RSP    | ESP    | SP     | -          | SPL        | 특수, Stack Pointer를 의미하며 스택의 최상단 주소를 가리킴 (Push, Pop 할 때마다 바뀜) |
+| RIP    | EIP    | IP     | -          | IPL        | 특수, Instruction Pointer를 의미하며 CPU가 다음에 실행할 명령어가 어디 있는지 알려줌 |
+| RFLAGS | EFLAGS | FLAGS  | -          | -          | ??? |
+| R8     | R8D    | R8W    | -          | R8B        | 범용, x64에 추가됨 |
+| R9     | R9D    | R9W    | -          | R9B        | 범용, x64에 추가됨 |
+| R10    | R10D   | R10W   | -          | R10B       | 범용, x64에 추가됨 |
+| R11    | R11D   | R11W   | -          | R11B       | 범용, x64에 추가됨 |
+| R12    | R12D   | R12W   | -          | R12B       | 범용, x64에 추가됨 |
+| R13    | R13D   | R13W   | -          | R13B       | 범용, x64에 추가됨 |
+| R14    | R14D   | R14W   | -          | R14B       | 범용, x64에 추가됨 |
+| R15    | R15D   | R15W   | -          | R15B       | 범용, x64에 추가됨 |
+
+* 여기서 
