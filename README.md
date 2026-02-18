@@ -139,3 +139,122 @@
   - syscall 호출을 위해 다음 레지스터를 사용할 수 있음
   - RAX: 시스템 콜 번호를 기입할 것 (위의 API 문서 링크 참조), 호출 뒤에는 결과 값이 담김 (성공시 리턴값, 실패시 오류 코드)
   - RDI, RSI, RDX, R10, R8, R9: 함수의 1, 2, 3, 4, 5, 6번째 인자를 넣을 것
+  - (참고로 일반 라이브러리 호출의 경우 인자를 넣는 레지스터가 다름: RDI, RSI, RDX, RCX, R8, R9)
+  - 6개보다 인자가 많으면 스택을 이용해야 함
+
+## 어셈블리 코드
+
+### 섹션
+
+* 어셈블리 코드는 다음 4가지 섹션이 있음
+  - `.data`: 초기화된 데이터 또는 상수를 선언함
+  - `.bss`: 초기화되지 않은 변수를 선언함
+  - `.text`: 프로그램 코드
+  - `.shstrtab`: 기존 섹션에 대한 참조를 저장
+ 
+### 데이터 타입
+
+* 예제 코드
+
+```
+section .data
+    num1:   equ 100
+    num2:   equ 50
+    msg:    db "Sum is correct", 10
+```
+
+* 원래 어셈블리 언어는 정적 타입 언어가 아니며 바이트 집합을 직접 다룸
+  - NASM 자체적으로 데이터 타입을 정의하는 데 도움을 주는 함수를 제공함
+ 
+* `.data` 섹션: 기본 데이터 타입을 기반으로 NASM에서 제공하는 의사 명령어는 다음과 같다.
+
+| 키워드 | 이름 | 크기 | 설명 |
+| ------ | ---- | ---- | ---- |
+| DB | Define Byte | 1바이트 (8비트) | 문자나 작은 정수 저장 |
+| DW | Define Word | 2바이티 (16비트) | 보통 16비트 정수 저장 |
+| DD | Define Doubleword | 4바이트 (32비트) | 32비트 정수나 실수(float) 저장 |
+| DQ | Define Quadword | 8바이트 (64비트) | 64비트 정수나 배정밀도 실수(double) |
+| DT | Define Ten Bytes | 10바이트 (80비트) | 확장 정밀도 실수 저장 |
+| DO | Define Octoword | 16바이트 (128비트) | 128비트 데이터 (SSE 레지스터 등에서 사용) |
+| DY | Define Y-word | 32바이트 (256비트) | 256비트 데이터 (AVX 레지스터 용) |
+| DZ | Define Z-word | 64바이트 (512비트) | 512비트 데이터 (AVX-512 레지스터 용) |
+
+* `EQU` 상수 선언: num1은 100으로 치환됨 (C 언어의 #define과 같은 용도)
+
+* 문장 뒤에 ,10 또는 ,13 ,10를 붙임 (10: 라인피드, 13: 캐리지리턴)
+
+* `.bss` 섹션: 초기화되지 않은 변수를 예약하는 명령어는 다음과 같다.
+
+| 키워드 | 이름 | 크기 | 설명 |
+| ------ | ---- | ---- | ---- |
+| RESB | Reserve Byte | 1바이트 | resb 10 (10바이트 예약) |
+| RESW | Reserve Word | 2바이트 | resw 5 (10바이트 예약) |
+| RESD | Reserve Doubleword | 4바이트 | 32비트 변수용 (float) |
+| RESQ | Reserve Quadword | 8바이트 | 64비트 변수용 (double) |
+| REST | Reserve Ten Bytes | 10바이트 | 확장 실수용 |
+| RESO | Reserve Octoword | 16바이트 | 128비트용 |
+| RESY | Reserve Y-word | 32바이트 | 256비트용 |
+| RESZ | Reserve Z-word | 64바이트 | 512비트용 |
+
+### 스택
+
+* 스택은 push 할수록 거꾸로 자라게 되어 있어서 RSP의 주소 값이 감소하게 되어 있음, pop 할수록 RSP의 주소 값이 증가함
+  - RSP의 주소 값은 데이터가 들어 있는 스택의 가장 위를 가리킴
+  - RBP의 주소 값과 RSP의 주소 값이 같으면 스택이 비어 있다는 뜻임
+  - 함수 호출시 항상 다음과 같은 동작을 수행해야 함
+    ```
+    push rbp        ; 기존 Base Pointer 백업
+    mov rbp, rsp    ; 새로운 Frame Base Pointer 세트
+    ...
+    mov rsp, rbp    ; RSP 위치를 RBP 위치로 끌어올림으로써 쌓였던 데이터 모두 정리
+    pop rbp         ; RSP가 가리키는 곳에서 값을 꺼내 RBP 레지스터에 넣음 (저장했던 Base Pointer 복원) --> 위 코드와 이 코드를 leave라는 명령어 하나로 합칠 수 있음
+    ret             ; RSP가 가리키는 주소값(call 호출시 자동 저장된 값)을 꺼내 RIP 레지스터에 넣음 (CPU는 call 명령 다음 줄부터 실행하게 됨)
+    ```
+
+* 스택 동작의 예시 (단순한 값 저장/불러오기)
+  - `push rax`: RSP 값이 8 감소한 뒤에 rax 값을 RSP 주소에 저장함
+  - `pop rax`: RSP 주소로부터 값을 가져와 rax에 저장하고 RSP 값이 8 증가함
+ 
+* 스택 동작의 예시 (함수 호출)
+  - `call MyFunc`: MyFunc 함수를 호출
+    ```
+    push returnAddr  ; call 직후의 주소
+    jump MyFunc      ; MyFunc 함수로 점프
+    ```
+  - `ret`
+    ```
+    pop rip    ; Instruction Pointer에 저장했던 call 직후의 주소를 가져와서 저장
+    ```
+
+* 예제
+
+```
+section .text
+    global _start
+
+_start:
+    ; 1. 함수 호출 (리턴 주소를 스택에 push하고 jump)
+    call add_numbers
+
+    ; 3. 프로그램 종료 (시스템 콜)
+    mov rax, 60         ; sys_exit
+    xor rdi, rdi        ; status 0
+    syscall
+
+add_numbers:
+    ; --- 프롤로그 (새로운 층 쌓기) ---
+    push rbp            ; 부모(_start)의 RBP를 백업
+    mov rbp, rsp        ; 현재 위치를 이 함수의 기준점(바닥)으로 설정
+    sub rsp, 16         ; 지역 변수 2개를 위한 16바이트 공간 확보
+
+    ; --- 본문 (스택 사용) ---
+    mov qword [rbp-8], 10   ; 첫 번째 지역 변수 = 10
+    mov qword [rbp-16], 20  ; 두 번째 지역 변수 = 20
+
+    mov rax, [rbp-8]    ; rax = 10
+    add rax, [rbp-16]   ; rax = 10 + 20 (결과는 30)
+
+    ; --- 에필로그 (정리하고 돌아가기) ---
+    leave               ; mov rsp, rbp + pop rbp (스택 원상복구)
+    ret                 ; 스택의 리턴 주소를 꺼내 _start로 복귀
+```
