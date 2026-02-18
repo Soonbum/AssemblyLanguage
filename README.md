@@ -258,3 +258,9 @@ add_numbers:
     leave               ; mov rsp, rbp + pop rbp (스택 원상복구)
     ret                 ; 스택의 리턴 주소를 꺼내 _start로 복귀
 ```
+
+
+... 산술연산/논리연산/분기문/문자열/ -- https://github.com/0xAX/asm/blob/master/content/asm_4.md
+... 매크로 -- https://github.com/0xAX/asm/blob/master/content/asm_5.md
+... 실수연산 -- https://github.com/0xAX/asm/blob/master/content/asm_6.md
+... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
