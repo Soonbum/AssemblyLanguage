@@ -110,10 +110,11 @@
 | 21 | ID | ID Flag | 시스템 | CPUID 명령어를 지원하는지 확인용 |
 
 * RFLAGS 레지스터 조작 명령어
-  - PUSHFQ (Push Flags Quadword): 현재 RFLAGS 값을 스택에 저장합니다.
-  - POPFQ (Pop Flags Quadword): 스택에 있는 값을 RFLAGS로 복원합니다.
+  - PUSHFQ (Push Flags Quadword): 현재 RFLAGS 값을 스택에 저장합니다. (EFLAGS(32비트)에 대해서는 PUSHFD, FLAGS(16비트)에 대해서는 PUSHF)
+  - POPFQ (Pop Flags Quadword): 스택에 있는 값을 RFLAGS로 복원합니다. (EFLAGS(32비트)에 대해서는 POPFD, FLAGS(16비트)에 대해서는 POPF)
   - STC / CLC: Carry Flag(CF)를 직접 1로 만들거나(Set) 0으로 만듭니다(Clear).
   - STD / CLD: Direction Flag(DF)를 직접 설정하거나 해제합니다.
+  - (나머지는 생략)
 
 ### 엔디안
 
@@ -146,11 +147,11 @@
 
 ### 섹션
 
-* 어셈블리 코드는 다음 4가지 섹션이 있음
+* 사용자가 직접 작성하는 어셈블리 코드는 다음 섹션들이 있음
   - `.data`: 초기화된 데이터 또는 상수를 선언함
-  - `.bss`: 초기화되지 않은 변수를 선언함
+  - `.rodata`: 읽기 전용 데이터 정의를 선언함
+  - `.bss`: 초기화되지 않은 변수를 선언함 (실행시 0으로 채워짐)
   - `.text`: 프로그램 코드
-  - `.shstrtab`: 기존 섹션에 대한 참조를 저장
  
 ### 데이터 타입
 
