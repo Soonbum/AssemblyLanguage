@@ -4,6 +4,7 @@
 
 * 어셈블리어의 문법은 CPU의 명령어 집합 구조(ISA), 운영체제, 어셈블러의 종류에 따라 달라질 수 있음
   - 이 자료에서는 Intel x64, 리눅스, NASM 기준으로 설명할 것이다.
+  - 인텔의 어셈블리 자료는 [여기](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)에서 구할 수 있음
 
 * WSL(Windows Subsystem for Linux) 또는 리눅스 환경에서 다음과 같이 구축한다.
 
@@ -71,7 +72,7 @@
 | RDI    | EDI    | DI     | -          | DIL        | 범용, Destination Index를 의미하며 데이터 도착지 주소를 가리킴 |
 | RBP    | EBP    | BP     | -          | BPL        | 특수, Base Pointer를 의미하며 스택의 기준 주소를 가리킴 |
 | RSP    | ESP    | SP     | -          | SPL        | 특수, Stack Pointer를 의미하며 스택의 최상단 주소를 가리킴 (Push, Pop 할 때마다 바뀜) |
-| RIP    | EIP    | IP     | -          | IPL        | 특수, Instruction Pointer를 의미하며 CPU가 다음에 실행할 명령어가 어디 있는지 알려줌 |
+| RIP    | EIP    | IP     | -          | IPL        | 특수, Instruction Pointer를 의미하며 CPU가 다음에 실행할 명령어가 어디 있는지 알려줌 (`mov` 명령어 사용 불가하며 `jmp`, `call`, `ret` 등을 통해 자동으로 바뀜)  |
 | RFLAGS | EFLAGS | FLAGS  | -          | -          | 특수, Flags Register를 의미하며, CPU의 현재 상태를 알려줌 |
 | R8     | R8D    | R8W    | -          | R8B        | 범용, x64에 추가됨 |
 | R9     | R9D    | R9W    | -          | R9B        | 범용, x64에 추가됨 |
@@ -81,6 +82,14 @@
 | R13    | R13D   | R13W   | -          | R13B       | 범용, x64에 추가됨 |
 | R14    | R14D   | R14W   | -          | R14B       | 범용, x64에 추가됨 |
 | R15    | R15D   | R15W   | -          | R15B       | 범용, x64에 추가됨 |
+
+* 실수 및 벡터 레지스터는 다음과 같다.
+
+| 이름 | 크기 | 용도 |
+| ---- | ---- | ---- |
+| XMM0 ~ XMM15 | 16바이트 (128비트) | SSE 명령어, 실수 연산, 짧은 벡터 연산 |
+| YMM0 ~ YMM15 | 32바이트 (256비트) | AVX 명령어 전용 (XMM을 포함하는 확장 형태) |
+| ZMM0 ~ ZMM31 | 64바이트 (512비트) | AVX-512 전용 (최신 고성능 CPU) |
 
 * 약자의 뜻은 다음과 같음
   - R(Register / 64비트): 64비트 레지스터
@@ -100,7 +109,7 @@
 | 7 | SF | Sign Flag | 상태 | 연산 결과가 음수임 (최상위 비트가 1)* |
 | 8 | TF | Trap Flag | 시스템 | 한 단계씩 실행 모드 활성화 (디버깅용) |
 | 9 | IF | Interrupt Enable | 시스템 | 외부 인터럽트(키보드 입력 등)를 처리함 |
-| 10 | DF | Direction Flag | 제어 | 문자열 처리시 주소를 감소시킴 (0이면 증가) |
+| 10 | DF | Direction Flag | 제어 | 문자열 처리시 주소를 증가 또는 감소시킬지 결정 (0이면 증가, 1이면 감소) |
 | 11 | OF | Overflag Flag | 상태 | 부호 있는 연산에서 범위 초과 발생* |
 | 12-13 | IOPL | I/O Privilege | 시스템 | 입출력 포트에 접근 가능한 권한 레벨 (0~3) |
 | 14 | NT | Nested Task | 시스템 | 현재 태스크가 다른 태스크 내부에 중첩됨 |
@@ -260,8 +269,74 @@ add_numbers:
     ret                 ; 스택의 리턴 주소를 꺼내 _start로 복귀
 ```
 
+## 연산자
 
-... 산술연산/논리연산/분기문/문자열/ -- https://github.com/0xAX/asm/blob/master/content/asm_4.md
+### 데이터 전송 명령어
+
+* mov: 범용 레지스터/메모리/값을 범용 레지스터에 저장하는 명령어 (이름은 mov지만 실제 의미는 복사, 저장에 가까움)
+  - `mov rax, rcx`: rcx의 값을 rax에 저장
+  - `mov rax, 5`: 5를 rax에 저장
+  - `mov [rcx], rax`: rax의 값을 rcx에 지정된 메모리 주소에 저장
+
+* 특수한 경우에서 사용하는 `mov` 명령어
+  - `movzx`: 작은 크기의 레지스터에서 큰 크기의 레지스터로 데이터를 복사할 때, 상위 비트를 모두 0으로 채움
+  - `movsx`: 작은 크기의 레지스터에서 큰 크기의 레지스터로 데이터를 복사할 때, sign 비트를 상위 비트에 복사함 (양수는 0, 음수는 1)
+  - `cmove` / `cmovne`: 이전 비교 연산에서 두 피연산자가 "같았다면/달랐다면" 복사함
+  - `cmovz` / `cmovnz`: 이전 비교 연산에서 결과가 "0이었다면/0이 아니었다면" 복사함
+  - `cmovc` / `cmovnc`: 이전 비교 연산이 Carry flag를 "set했다면/set하지 않았다면" 복사함
+
+### 연산 명령어
+
+* 정수 산술 연산 (가능하면, `mul`, `div` 연산은 지양할 것!)
+  - `add`: 1번째 피연산자의 값에 2번째 피연산자의 값을 더하고 나서 결과를 1번째 피연산자에 저장 (덧셈)
+  - `sub`: 1번째 피연산자의 값에 2번째 피연산자의 값을 빼고 나서 결과를 1번째 피연산자에 저장 (뺄셈)
+  - `mul`: 부호 없는 연산. 피연산자는 1개만 기재함, 나머지 하나는 무조건 `rax`. 피연산자와 `rax`의 값을 곱한 후 결과의 상위 64비트는 `rdx`, 하위 64비트는 `rax`에 저장
+  - `imul`: 부호 있는 연산.
+    * 피연산자 1개인 경우: `mul`과 동일
+    * 피연산자 2개인 경우: 1번째 피연산자와 2번째 피연산자의 값을 곱하고 나서 결과를 1번째 피연산자에 저장
+    * 피연산자 3개인 경우: 2번째 피연산자와 3번째 피연산자의 값을 곱하고 나서 결과를 1번째 피연산자에 저장
+  - `div`: 부호 없는 연산. 나누어질 수는 상위 64비트 `rdx` (0으로 초기화할 것: `xor rdx, rdx`), 하위 64비트 `rax`에 담고, 피연산자는 1개만 기재함. 몫은 `rax`, 나머지는 `rdx`에 저장
+  - `idiv`: 부호 있는 연산. 나누어질 수는 `cqo` (Convert Quadword to Octword) 명령으로 `rax`의 부호 비트를 `rdx`까지 먼저 확장해야 함. 피연산자는 1개만 기재함. 몫은 `rax`, 나머지는 `rdx`에 저장
+  - `inc`: 1번째 피연산자의 값을 1 증가시킴
+  - `dec`: 1번째 피연산자의 값을 1 감소시킴
+  - `neg`: 1번째 피연산자의 값의 부호를 반전시킴, 예를 들면 5는 -5로 바뀜. (2의 보수)
+
+* 논리 연산
+  - `and`: 1, 2번째 피연산자의 논리 AND 연산 결과를 1번째 피연산자에 저장
+  - `or`: 1, 2번째 피연산자의 논리 OR 연산 결과를 1번째 피연산자에 저장
+  - `xor`: 1, 2번째 피연산자의 논리 XOR 연산 결과를 1번째 피연산자에 저장 (변수를 0으로 초기화시 자주 사용함)
+  - `not`: 1번째 피연산자의 논리 NOT 연산 결과를 1번째 피연산자에 저장 (비트 반전)
+
+### 분기 명령어
+
+* 어셈블리어에서는 `cmp`와 `jmp` 및 파생 명령만으로 모든 분기 처리를 수행함
+  - `jmp`: 1번째 피연산자가 가리키는 "라벨" 혹은 "프로그램의 주소"로 점프
+  - `cmp`: 1번째 피연산자에서 2번째 피연산자를 뺀 후에 결과를 RFLAGS 레지스터에 상태를 표시함
+  - `je` (Jump if Equal): 이전 `cmp` 연산 결과가 같았다면 1번째 피연산자가 가리키는 곳으로 점프
+  - `jz` (Jump if Zero): RFLAGS 레지스터의 Zero flag가 1이었으면 1번째 피연산자가 가리키는 곳으로 점프 (`je`와 비슷함)
+  - `jne` (Jump if Not Equal): 이전 `cmp` 연산 결과가 같지 않았다면 1번째 피연산자가 가리키는 곳으로 점프
+  - `jnz` (Jump if Not Zero): RFLAGS 레지스터의 Zero flag가 0이었으면 1번째 피연산자가 가리키는 곳으로 점프 (`jne`와 비슷함)
+  - `jg` (Jump if Greater): 이전 `cmp` 연산 결과가 0보다 크면 1번째 피연산자가 가리키는 곳으로 점프
+  - `jge` (Jump if Greater or Equal): 이전 `cmp` 연산 결과가 0보다 크거나 같으면 1번째 피연산자가 가리키는 곳으로 점프
+  - `jl` (Jump if Less): 이전 `cmp` 연산 결과가 0보다 작으면 1번째 피연산자가 가리키는 곳으로 점프
+  - `jle` (Jump if Less or Equal): 이전 `cmp` 연산 결과가 0보다 작거나 같으면 1번째 피연산자가 가리키는 곳으로 점프
+  - `ja` (Jump if Above): `jg`와 비슷하지만 부호 없는 비교 수행
+  - `jae` (Jump if Above or Equal): `jge`와 비슷하지만 부호 없는 비교 수행
+  - `jb` (Jump if Below): `jl`과 비슷하지만 부호 없는 비교 수행
+  - `jbe` (Jump if Below or Equal): `jle`와 비슷하지만 부호 없는 비교 수행
+  - `js` (Jump if Sign): 결과가 음수(Sign flag가 1)이면 1번째 비연산자가 가리키는 곳으로 점프
+  - `jns` (Jump if Not Sign): 결과가 양수(Sign flag가 0)이면 1번째 비연산자가 가리키는 곳으로 점프
+  - `jo` (Jump if Overflow): 오버플로우(Overflow flag가 1) 발생시 1번째 비연산자가 가리키는 곳으로 점프
+  - `jc` (Jump if Carry): 캐리(Carry flag가 1) 발생시 1번째 비연산자가 가리키는 곳으로 점프
+
+
+
+
+
+... 문자열/ -- https://github.com/0xAX/asm/blob/master/content/asm_4.md
+
 ... 매크로 -- https://github.com/0xAX/asm/blob/master/content/asm_5.md
+
 ... 실수연산 -- https://github.com/0xAX/asm/blob/master/content/asm_6.md
+
 ... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
