@@ -329,11 +329,115 @@ add_numbers:
   - `jo` (Jump if Overflow): 오버플로우(Overflow flag가 1) 발생시 1번째 비연산자가 가리키는 곳으로 점프
   - `jc` (Jump if Carry): 캐리(Carry flag가 1) 발생시 1번째 비연산자가 가리키는 곳으로 점프
 
+### 문자열/배열 관련 명령어
+
+* 다음 명령어들을 통해 문자열뿐만 아니라 연속된 메모리 데이터(배열, 구조체)까지도 처리할 수 있음 (접미어 의미: byte-1바이트, word-2바이트, doubleword-4바이트, quadword-8바이트)
+  - `movs(b|w|d|q)` (Moving String): [RSI]가 가리키는 데이터를 [RDI]가 가리키는 곳으로 복사
+  - `cmps(b|w|d|q)` (Compare String): [RSI]와 [RDI]가 가리키는 데이터를 비교, 결과는 RFLAGS에 반영
+  - `scas` (Scan String): RAX(또는 AL, EAX)의 값과 [RDI]가 가리키는 메모리 값을 비교합니다.
+  - `lods` (Load String): [RSI]가 가리키는 메모리 값을 RAX 레지스터로 읽어옵니다.
+  - `stos` (Store String): RAX 레지스터의 값을 [RDI]가 가리키는 메모리에 저장합니다.
+
+* RFLAGS의 Direction flag
+  - 위 명령들이 실행되면 RSI, RDI는 데이터 크기만큼 자동으로 변함
+    * CLD (Clear DF): 주소가 증가합니다. (정방향 처리)
+    * STD (Set DF): 주소가 감소합니다. (역방향 처리)
+
+* 반복하기
+  - `rep` (Repeat): RCX가 0이 될 때까지 반복 (주로 `movs`, `stos`와 함께 사용)
+  - `repe` / `repz`: RCX가 0이 아니면서, 비교 결과가 같을 동안 반복 (주로 `cmps`, `scas`와 함께 사용)
+  - `repne` / `repnz`: RCX가 0이 아니면서, 비교 결과가 다를 동안 반복
+
+* 예제: memset과 같이 0으로 채우기
+
+```
+mov rdi, buffer    ; 목적지 주소
+mov rax, 0         ; 채울 값 (0)
+mov rcx, 100       ; 100번 반복
+cld                ; 방향은 정방향(+)
+rep stosq          ; RAX(0)를 [RDI]에 저장하고 RDI를 8바이트씩 증가시키기를 100번 반복
+```
+
+* 예제: 문자열 길이 찾기
+
+```
+mov rdi, string    ; 스캔할 주소
+mov al, 0          ; 찾을 값 (\0)
+mov rcx, -1        ; 무한대(최댓값) 설정
+cld
+repne scasb        ; AL(0)과 [RDI]가 다를 동안 계속 스캔
+; 결과적으로 RDI는 널 문자 다음 위치를 가리키게 됨
+```
+
+* 예제: 문자열 뒤집기 (reverse)
+
+```
+section .data
+        SYS_WRITE equ 1          ; `sys_write` 시스템 콜 번호.
+        SYS_EXIT equ 60          ; `sys_exit` 시스템 콜 번호
+        STD_OUT equ 1            ; 표준 출력 file descriptor 번호
+        EXIT_CODE equ 0          ; 프로그램 종료 코드. 정상인 경우 0.
+        NEW_LINE_LEN equ 1       ; new line 심볼만 있는 경우의 문자열 길이
+        INPUT_LEN equ 12         ; INPUT 문자열 길이
+
+        NEW_LINE db 0xa          ; new line 심볼('\n')의 ASCII 코드
+        INPUT db "Hello world!"  ; 예제용 입력 문자열
+
+section .bss
+        OUTPUT resb INPUT_LEN    ; 뒤집은 문자열을 저장할 출력 버퍼
+
+section .text
+        global  _start
+
+; 프로그램 엔트리 포인트
+_start:
+        xor rcx, rcx         ; rcx 값을 0으로 초기화. 입력 문자열 길이 값을 저장하기 위해 사용될 것임.
+        mov rsi, INPUT       ; 입력 문자열 주소를 rsi 레지스터에 저장
+        mov rdi, OUTPUT      ; 출력 버퍼 주소를 rdi 레지스터에 저장
+        call reverseStringAndPrint    ; reverseStringAndPrint 프로시저 호출.
+
+; 입력 문자열 길이를 계산하고 뒤집을 준비를 함
+reverseStringAndPrint:
+        cmp byte [rsi], 0    ; 주어진 문자열의 1번째 요소와 `NUL` terminator를 비교
+        mov rdx, rcx         ; 뒤집힌 문자열의 길이를 rdx 레지스터에 저장
+        je reverseString     ; 입력 문자열 끝에 도달하면 뒤집을 것
+        lodsb                ; rsi로부터 바이트 하나를 al 레지스터에 로드하고, 문자열의 다음 문자로 포인터를 이동시킴
+        push rax             ; 스택에 입력 문자열의 문자를 저장
+        inc rcx              ; 입력 문자열 길이를 저장하는 카운터를 1 증가시킴
+        jmp reverseStringAndPrint    ; 입력 문자열의 끝에 이를 때까지 반복
+
+; 문자열을 뒤집은 후에 출력 버퍼에 저장
+reverseString:
+        cmp rcx, 0           ; 문자열 길이를 저장하는 카운터를 확인
+        je printResult       ; 만약 `0`과 같다면 뒤집힌 문자열을 출력
+        pop rax              ; 스택으로부터 문자 하나를 Pop
+        mov [rdi], rax       ; 출력 버퍼에 가져온 문자 하나를 넣음
+        inc rdi              ; 출력 버퍼의 다음 문자로 포인터를 이동시킴
+        dec rcx              ; 문자열 길이에 대한 카운터를 1 감소시킴
+        jmp reverseString    ; 문자열 끝에 이를 때까지 다음 문자로 이동
+
+; 뒤집힌 문자열을 표준 출력으로 출력
+printResult:
+        mov rax, SYS_WRITE   ; 시스템 콜 번호 지정 (1: `sys_write`)
+        mov rdi, STD_OUT     ; `sys_write`의 1번째 인자 지정 (`stdout`)
+        mov rsi, OUTPUT      ; `sys_write`의 2번째 인자 지정 (출력할 결과 문자열에 대한 참조)
+        syscall    ; `sys_write` 시스템 콜 호출
+
+        mov rdx, NEW_LINE_LEN    ; 출력할 결과 문자열의 길이를 설정
+        mov rax, SYS_WRITE       ; 시스템 콜 번호 지점 (1: `sys_write`)
+        mov rdi, STD_OUT         ; `sys_write`의 1번째 인자 지정 (`stdout`)
+        mov rsi, NEW_LINE        ; `sys_write`의 2번째 인자 지정 (출력할 결과 문자열에 대한 참조)
+        syscall    ; `sys_write` 시스템 콜 호출
+
+        mov rax, SYS_EXIT    ; 시스템 콜 번호 지정 (60: `sys_exit`)
+        mov rdi, EXIT_CODE   ; `sys_exit`의 1번째 인자를 0으로 지정. (성공한 경우 0)
+        syscall    ; `sys_exit` 시스템 콜 호출
+```
 
 
 
 
-... 문자열/ -- https://github.com/0xAX/asm/blob/master/content/asm_4.md
+
 
 ... 매크로 -- https://github.com/0xAX/asm/blob/master/content/asm_5.md
 
