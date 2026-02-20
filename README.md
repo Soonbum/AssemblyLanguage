@@ -4,6 +4,8 @@
 
 * 어셈블리어의 문법은 CPU의 명령어 집합 구조(ISA), 운영체제, 어셈블러의 종류에 따라 달라질 수 있음
   - 이 자료에서는 Intel x64, 리눅스, NASM 기준으로 설명할 것이다.
+  - 주로 참조한 자료는 [여기](https://github.com/0xAX/asm)에 있음
+  - NASM 관련 자료는 [여기](https://www.nasm.us/doc/nasm01.html)에 있음
   - 인텔의 어셈블리 자료는 [여기](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)에서 구할 수 있음
 
 * WSL(Windows Subsystem for Linux) 또는 리눅스 환경에서 다음과 같이 구축한다.
@@ -524,22 +526,151 @@ _start:
 
 ### 유용한 표준 매크로
 
+* `%include` 지시어
+  - `%include "helpers.asm"`: 외부 .asm 파일을 include 시킴
+
+* `%assign` 지시어
+  - 파라미터 없이 숫자 값으로 확장되는 매크로를 정의함
+  - 예제
+    ```
+    ; 예: 데이터 테이블을 자동으로 생성하는 매크로
+    %assign i 1
+    %rep 5
+        db i          ; 1, 2, 3, 4, 5 순서대로 바이트 생성
+        %assign i i+1 ; i 값을 1 증가 (재할당)
+    %endrep
+
+    ; 결과적으로 아래와 같이 코드가 생성됩니다:
+    ; db 1
+    ; db 2
+    ; db 3
+    ; db 4
+    ; db 5
+    ```
+
+* `%defstr` 지시어
+  - 파라미터 없이 문자열 값으로 확장되는 매크로를 정의함
+  - `%defstr hello_world_msg "Hello world!"`
+
+* `%!` 지시어
+  - 환경 변수를 가져올 때 사용함
+  - `%defstr HOME %!HOME`
+
+* `%strlen` 지시어
+  - 문자열 길이를 알려줌
+  - 예제
+    ```
+    ; PRINT 매크로 정의
+    %macro PRINT 1
+    	  mov rax, 1              ; 시스템 콜 번호 지정 (1: `sys_write`)
+        mov rdi, 1              ; `sys_write`의 1번째 인자를 1로 설정 (`stdout`)
+        mov rsi, %1             ; `sys_write`의 2번째 인자를 프린트 할 문자열에 대한 참조로 설정 (매크로의 1번째 인자로 대체될 것이다)
+        mov rdx, %strlen(%1)    ; `sys_write`의 3번째 인자를 프린트 할 문자열의 길이로 설정
+        syscall                 ; `sys_write` 시스템 콜 호출
+    %endmacro
+    ```
+
+* `%rotate`, `%rep` 지시어
+  - 매크로 내부에서 반복 작업을 할 때 유용함
+  - `%rep`: 특정 코드 블록을 지정한 횟수만큼 반복 생성
+    ```
+    %rep 5
+        db 0    ; 'db 0'이 5번 연속으로 써짐
+    %endrep
+    ```
+  - `%rotate`: 매크로에 전달된 인자들(%1, %2, %3...)의 순서를 한 칸씩 민다. (1이면 오른쪽으로 한 칸 회전, -1이면 왼쪽으로 한 칸 회전)
+    ```
+    %macro MULTI_PUSH 1-*
+        %rep %0
+            push %1
+            %rotate 1     ; 앞에서부터 차례대로
+        %endrep
+    %endmacro
+
+    %macro MULTI_POP 1-*
+        %rep %0
+            %rotate -1    ; 뒤에서부터 거꾸로
+            pop %1
+        %endrep
+    %endmacro
+
+    section .text
+    _start:
+        MULTI_PUSH rax, rbx, rcx   ; push rax, push rbx, push rcx
+        ; ... 어떤 작업 수행 ...
+        MULTI_POP  rax, rbx, rcx   ; pop rcx, pop rbx, pop rax (복구 완료!)
+    ```
+
+* 오류 메시지 출력을 위한 지시어
+  - 관련 지시어 종류는 다음과 같음
+    | 지시어 | 의미 | 빌드 중단 여부 | 특징 |
+    | ------ | ---- | -------------- | ---- |
+    | `%warning` | 경고 | 중단 안함 | 주의만 주고 계속 진행 |
+    | `%error` | 오류 | 중단함 (지연) | 발견된 모든 오류를 다 보여주고 종료 |
+    | `%fatal` | 치명적인 오류 | 즉시 중단 | 발견 즉시 바로 종료 |
+  - 경고 예제
+    ```
+    %if VERSION < 2
+        %warning "이 버전은 곧 지원이 중단될 예정입니다."
+    %endif
+    ```
+  - 오류 예제
+    ```
+    %macro MY_MACRO 1
+        %if %1 > 255
+            %error "인자값은 255를 넘을 수 없습니다!"
+        %endif
+    %endmacro
+    ```
+  - 치명적인 오류 예제
+    ```
+    %ifndef REQUIRED_HEADER
+        %fatal "필수 헤더 파일이 없습니다. 빌드를 중단합니다."
+    %endif
+    ```
+  - 예제: 매크로 방어 코드
+    ```
+    %macro PUSH_RAX_ONLY 1
+        %ifidni %1, rax    ; 인자가 rax와 같다면 (대소문자 무시)
+            push rax
+        %else
+            %error "이 매크로는 오직 rax만 허용합니다. 입력하신 것: %1"
+        %endif
+    %endmacro
+
+    _start:
+        PUSH_RAX_ONLY rbx  ; 빌드 시 에러 발생!
+    ```
+
+* `struc` 매크로: C 언어의 구조체와 유사함
+  - 기본 문법은 다음과 같다.
+    ```
+    struc Person
+        .name:   resb 32    ; 32바이트 (이름)
+        .age:    resd 1     ; 4바이트 (나이)
+        .id:     resq 1     ; 8바이트 (ID)
+    endstruc
+    ```
+  - 예제
+    ```
+    section .data
+        my_friend:
+            istruc Person
+                at Person.name, db "Alice", 0
+                at Person.age,  dd 25
+                at Person.id,   dq 12345678
+            iend
+
+    ...
+    mov eax, [rbx + Person.age]  ; RBX가 구조체의 시작 주소라면, 32바이트(name) 뒤의 age 값을 읽어옴 (이름으로 참조하므로 오프셋 숫자를 매번 안 바꿔도 되서 편리함)
+    ```
+
+## 실수 연산
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-... 매크로 -- https://github.com/0xAX/asm/blob/master/content/asm_5.md
 
 ... 실수연산 -- https://github.com/0xAX/asm/blob/master/content/asm_6.md
 
 ... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
+
+... NASM -- https://www.nasm.us/doc/nasm01.html
