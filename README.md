@@ -273,6 +273,39 @@ add_numbers:
 
 ## 연산자
 
+### 비트 연산
+
+* 시프트: 비트를 왼쪽 혹은 오른쪽으로 이동시키는 명령어들은 다음과 같다.
+  - `shl`: 1번째 피연산자의 비트를 왼쪽으로 shift (반대쪽은 0으로 채움)
+  - `shr`: 1번째 피연산자의 비트를 오른쪽으로 shift (반대쪽은 0으로 채움)
+  - `rol`: 1번째 피연산자의 비트를 왼쪽으로 회전시킴
+  - `ror`: 1번째 피연산자의 비트를 오른쪽으로 회전시킴
+
+* 테스트 및 스캔
+  - `test`: 1번째 피연산자와 2번째 피연산자의 AND 연산 후에 결과를 저장하지 않고 flag 업데이트
+    * ZF(Zero Flag): 연산 결과가 0이면 1이 됨 (즉, rax가 0이면 ZF=1)
+    * SF(Sign Flag): 최상위 비트(부호 비트)가 1이면 1이 됨 (즉, rax가 음수이면 SF=1)
+    ```
+    test rax, rax
+    jz .is_zero       ; rax가 0이면 점프
+    js .is_negative   ; rax가 음수이면 점프
+    ```
+  - `bt` (Bit Test): 1번째 피연산자에서 n번째 자릿수(2번째 피연산자)가 확인하고 flag 업데이트
+    * BTS(비트 확인 후 1로 세팅)
+    * BTR(비트 확인 후 0으로 리셋)
+    ```
+    bt eax, 3         ; eax의 3번째 비트(2^3 = 8의 자리)를 확인
+    jc .bit_is_one    ; 3번째 비트가 1이면(CF=1) 점프
+    ```
+  - `BSF` / `BSR` (Bit Scan): 레지스터 안에서 '1'이 처음으로 나타나는 위치(인덱스)를 찾고 flag 업데이트
+    * BSF (Bit Scan Forward): 오른쪽(LSB, 0번 비트)에서 왼쪽으로 스캔
+    * BSR (Bit Scan Reverse): 왼쪽(MSB)에서 오른쪽으로 스캔
+    * 만약 대상 레지스터가 모두 0이면, ZF(Zero Flag)가 1이 되고 결과값은 정의되지 않습니다. (반드시 ZF를 먼저 체크할 것)
+    ```
+    bsf rax, rbx      ; rbx에서 처음 1이 나오는 위치를 rax에 저장
+    jz .all_zeros     ; rbx가 0이었다면 예외 처리
+    ```
+
 ### 데이터 전송 명령어
 
 * mov: 범용 레지스터/메모리/값을 범용 레지스터에 저장하는 명령어 (이름은 mov지만 실제 의미는 복사, 저장에 가까움)
@@ -667,9 +700,75 @@ _start:
 
 ## 실수 연산
 
+* 앞에서 정수, 문자열을 다루었는데 문자도 실상 정수 데이터임을 감안한다면 지금까지 본 것은 전부 정수 연산/처리만 배운 것이다.
+  - 실수 연산은 앞에서 배운 `mov`, `add` 같은 명령어로 수행하기에는 너무 복잡하고 효율적이지 않고 느림 (지수 맞추기, 정규화)
+  - 현대 CPU에서는 FPU (Floating Point Unit)라는 전용 연산 장치, 더 나아가 SIMD (Single Instruction Multiple Data) 기술을 이용해 병렬 처리를 수행하여 부동 소수 연산을 고속으로 처리함
+    * FPU (Floating Point Unit)의 역할
+      - 지수 맞추기 (Alignment): 소수점 위치를 동일하게 맞춤
+      - 가수 더하기 (Add): 소수점 앞뒤의 실제 숫자들을 더함
+      - 정규화 (Normalization): 결과를 다시 표준 형태(예: 1.xxxx)로 만듦
+      - 반올림 (Rounding): 정해진 비트 수에 맞게 끝처리
+    * SIMD (Single Instruction Multiple Data) 기술 (FPU보다 더 빠름)
+      - SSE (Streaming SIMD Extensions): 128비트 레지스터를 사용하여 여러 개의 소수점 연산을 동시에 처리
+      - AVX (Advanced Vector Extensions): 256비트나 512비트 레지스터를 사용하여 한 번에 8~16개의 소수점 연산을 병렬로 처리
+  - .data 섹션 예시
+    ```
+    section .data
+        ; 1. Single Precision (FP32) - 32비트 (4바이트)
+        ; "dd" 지시어를 사용하여 4바이트 상수를 정의
+        f32_pi:        dd 3.141592
+        f32_one:       dd 1.0
+
+        ; 2. Double Precision (FP64) - 64비트 (8바이트)
+        ; "dq" 지시어를 사용하여 8바이트 상수를 정의
+        f64_pi:        dq 3.141592653589793
+        f64_exp:       dq 2.718281828459
+
+        ; 3. Extended Precision (80-bit) - 80비트 (10바이트)
+        ; dt(Ten-byte) 지시어 사용
+        f80_exact:     dt 1.234567890123456789
+
+        ; 4. Quadruple Precision (FP128) 또는 SIMD용 데이터
+        ; 보통 두 개의 dq나 do(octoword)를 사용하여 비트 단위로 정의
+        f128_val1:     dq 0.0, 0.0    ; 16바이트 공간을 0으로 초기화 (2개의 공간)
+        f128_val2:     do 0.0         ; 16바이트 공간을 0으로 초기화 (1개의 공간)
+    ```
+  - .bss 섹션 예시
+    ```
+    section .bss
+        ; 1. Half Precision (FP16 / Bfloat16) - 16비트 (2바이트)
+        half_val:      resw 1    ; 1개의 word(2바이트) 예약
+
+        ; 2. Single Precision (FP32) - 32비트 (4바이트)
+        single_val:    resd 1    ; 1개의 doubleword(4바이트) 예약
+
+        ; 3. Double Precision (FP64) - 64비트 (8바이트)
+        double_val:    resq 1    ; 1개의 quadword(8바이트) 예약
+
+        ; 4. Extended Precision (80-bit) - 80비트 (10바이트)
+        extended_val:  rest 1    ; 1개의 ten-byte(10바이트) 예약
+
+        ; 5. Quadruple Precision (FP128) - 128비트 (16바이트)
+        quad_val:      reso 1    ; 1개의 octoword(16바이트) 예약
+    ```
 
 
-... 실수연산 -- https://github.com/0xAX/asm/blob/master/content/asm_6.md
+
+
+
+
+
+
+... 실수연산 -- https://github.com/0xAX/asm/blob/master/content/asm_6.md -- https://github.com/mirahavel0309/asm/blob/korean/content/ko_asm_8.md
+
+* 실수 연산의 경우 다음 레지스터를 사용함: XMM0 ~ XMM15
+  - movss, movsd : 실수 값 이동 (single/double)
+  - addss, addsd : 실수 값 덧셈 (single/double)
+  - subss, subsd : 실수 값 뺄셈 (single/double)
+  - mulss, mulsd : 실수 값 곱셈 (single/double)
+  - divss, divsd : 실수 값 나눗셈 (single/double)
+  - sqrtss, sqrtsd : 실수 값 제곱근
+  - round : 실수를 반올림/올림/내림
 
 ... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
 
