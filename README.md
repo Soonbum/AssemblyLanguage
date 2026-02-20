@@ -308,7 +308,7 @@ add_numbers:
 
 ### 데이터 전송 명령어
 
-* mov: 범용 레지스터/메모리/값을 범용 레지스터에 저장하는 명령어 (이름은 mov지만 실제 의미는 복사, 저장에 가까움)
+* `mov`: 범용 레지스터/메모리/값을 범용 레지스터에 저장하는 명령어 (이름은 mov지만 실제 의미는 복사, 저장에 가까움)
   - `mov rax, rcx`: rcx의 값을 rax에 저장
   - `mov rax, 5`: 5를 rax에 저장
   - `mov [rcx], rax`: rax의 값을 rcx에 지정된 메모리 주소에 저장
@@ -316,9 +316,11 @@ add_numbers:
 * 특수한 경우에서 사용하는 `mov` 명령어
   - `movzx`: 작은 크기의 레지스터에서 큰 크기의 레지스터로 데이터를 복사할 때, 상위 비트를 모두 0으로 채움
   - `movsx`: 작은 크기의 레지스터에서 큰 크기의 레지스터로 데이터를 복사할 때, sign 비트를 상위 비트에 복사함 (양수는 0, 음수는 1)
-  - `cmove` / `cmovne`: 이전 비교 연산에서 두 피연산자가 "같았다면/달랐다면" 복사함
-  - `cmovz` / `cmovnz`: 이전 비교 연산에서 결과가 "0이었다면/0이 아니었다면" 복사함
-  - `cmovc` / `cmovnc`: 이전 비교 연산이 Carry flag를 "set했다면/set하지 않았다면" 복사함
+  - `cmove` / `cmovne`: 이전 비교 연산에서 두 피연산자가 "같았다면/달랐다면" 2번째 피연산자의 값을 1번째 피연산자로 복사함
+  - `cmovg` / `cmovlg`: 이전 비교 연산에서 1번째 피연산자가 2번째 피연산자보다 "크다면/크거나 같다면" 2번째 피연산자의 값을 1번째 피연산자로 복사함
+  - `cmovl` / `cmovle`: 이전 비교 연산에서 1번째 피연산자가 2번째 피연산자보다 "작다면/작거나 같다면" 2번째 피연산자의 값을 1번째 피연산자로 복사함
+  - `cmovz` / `cmovnz`: 이전 비교 연산에서 결과가 "0이었다면/0이 아니었다면" 2번째 피연산자의 값을 1번째 피연산자로 복사함
+  - `cmovc` / `cmovnc`: 이전 비교 연산이 Carry flag를 "set했다면/set하지 않았다면" 2번째 피연산자의 값을 1번째 피연산자로 복사함
 
 ### 연산 명령어
 
@@ -752,23 +754,128 @@ _start:
         quad_val:      reso 1    ; 1개의 octoword(16바이트) 예약
     ```
 
-* (... 제미나이 대답, 다음부터 볼 것: 1. 정수 vs 부동소수점 명령어 대응표 (SSE/AVX 기준)
+### 실수 연산자 종류
+
+* 실수 및 벡터 레지스터는 다음과 같다.
+
+| 이름 | 크기 | 용도 |
+| ---- | ---- | ---- |
+| XMM0 ~ XMM15 | 16바이트 (128비트) | SSE 명령어, 실수 연산, 짧은 벡터 연산 |
+| YMM0 ~ YMM15 | 32바이트 (256비트) | AVX 명령어 전용 (XMM을 포함하는 확장 형태) |
+| ZMM0 ~ ZMM31 | 64바이트 (512비트) | AVX-512 전용 (최신 고성능 CPU) |
+
+* 정수/실수 연산자를 대조해서 표로 다음과 같이 요약됨
+  - 접미어 ss: Scalar Single (32비트 float 하나)
+  - 접미어 sd: Scalar Double (64비트 double 하나)
+  - 접미어 ps: Packed Single (128비트 안에 float 4개를 동시에 연산)
+  - 접미어 pd: Packed Double (128비트 안에 double 2개를 동시에 연산)
+  - 접두사 f: x87 FPU (80비트 하나)
+
+| 정수 명령어 | Single (32비트/4바이트) | Double (64비트/8바이트) | Extended (80비트/10바이트) | 설명 |
+| ----------- | ----------------------- | ----------------------- | -------------------------- | ---- |
+| `mov`       | `movss`                 | `movsd`                 | `fld` (Load) / `fst` (Store) | 값을 레지스터/메모리로 복사 |
+| `add`       | `addss`                 | `addsd`                 | `fadd`                     | 덧셈 |
+| `sub`       | `subss`                 | `subsd`                 | `fsub`                     | 뺄셈 |
+| `mul`       | `mulss`                 | `mulsd`                 | `fmul`                     | 곱셈 |
+| `div`       | `divss`                 | `divsd`                 | `fdiv`                     | 나눗셈 |
+| `cmp`       | `ucomiss` / `comiss`    | `ucomisd` / `comisd`    | `fcomi`                    | 비교 (flag 업데이트) |
+
+* 예제
+  ```
+  section .data
+      f_val1  dd  1.5  ; Single
+      f_val2  dd  2.5
+      d_val1  dq  1.5  ; Double
+      d_val2  dq  2.5
+
+  section .text
+  _start:
+      ; --- Single Precision 연산 (float) ---
+      movss xmm0, [f_val1]     ; xmm0 = 1.5
+      addss xmm0, [f_val2]     ; xmm0 = 1.5 + 2.5
+      ucomiss xmm0, [f_val1]   ; xmm0와 f_val1 비교
+      ja .greater              ; xmm0 > f_val1 이면 점프
+
+      ; --- Double Precision 연산 (double) ---
+      movsd xmm1, [d_val1]     ; xmm1 = 1.5
+      mulsd xmm1, [d_val2]     ; xmm1 = 1.5 * 2.5
+  ```
+
+### 데이터 전송 명령어
+
+* XMM 레지스터에 저장하는 명령어
+  - `movss`: Moves a single-precision floating-point value between the XMM registers or between an XMM register and memory. (... 피연산자에 대한 설명 추가)
+  - `movsd`: Moves double-precision floating-point value between the XMM registers or between an XMM register and memory. (... 피연산자에 대한 설명 추가)
+  - ...
+  - `movdqd`
+  - `movaps`
+  - `movups`
+  - ...
+  - `movhlps`: Moves two-packed single-precision floating-point values from the high quadword of an XMM register to the low quadword of another XMM register. (... 피연산자에 대한 설명 추가)
+  - `movlhps`: Moves two-packed single-precision floating-point values from the low quadword of an XMM register to the high quadword of another XMM register. (... 피연산자에 대한 설명 추가)
+  - `fld`
+  - `fst`
+
+### 연산 명령어
+
+* 산술 연산 (... 그 외 연산자들은?)
+  - `addss`: Adds single-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - `addsd`: Adds double-precision floating point values. (... 피연산자에 대한 설명 추가)
+  - `addps`
+  - `addpd`
+  - `paddd`
+  - `paddb`
+  - `vaddps`
+  - `vaddpd`
+  - `subss`: Subtracts single-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - `subsd`: Subtracts double-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - ...
+  - `mulss`: Multiplies single-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - `mulsd`: Multiplies double-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - ...
+  - `divss`: Divides single-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - `divsd`: Divides double-precision floating-point values. (... 피연산자에 대한 설명 추가)
+  - ...
+  - `sqrtss`
+  - `sqrtsd`
+  - ...
+  - `maxss`
+  - `maxsd`
+  - ...
+  - `minss`
+  - `minsd`
+  - ...
+  - `pmaxs(q|d|w|b)`
+  - `pmaxu(q|d|w|b)`
+  - `pmins(q|d|w|b)`
+  - `pminu(q|d|w|b)`
+  - `round` ???
+  - `fadd`
+  - `fiadd`
+  - `fsub`
+  - `fisub`
+  - `fimul`
+  - `fidiv`
+  - `fabs`
+
+### 분기 명령어
+
+* 비교 연산
+  - `cmpss`: 1번째 피연산자와 2번째 피연산자와의 관계를 3번째 피연산자에 저장함
+    | 3번째 피연산자 값 | 의미 |
+    | ----------------- | ---- |
+    | 0 | == |
+    | 1 | < |
+    | 2 | <= |
+    | 3 | 둘 중 하나의 피연산자가 NaN (Not a Number) |
+    | 4 | != |
+    | 5 | >= |
+    | 6 | > |
+    | 7 | 두 피연산자 모두 NaN (Not a Number) |
 
 
 
 
-
-
-... 실수연산 -- https://github.com/0xAX/asm/blob/master/content/asm_6.md -- https://github.com/mirahavel0309/asm/blob/korean/content/ko_asm_8.md
-
-* 실수 연산의 경우 다음 레지스터를 사용함: XMM0 ~ XMM15
-  - movss, movsd : 실수 값 이동 (single/double)
-  - addss, addsd : 실수 값 덧셈 (single/double)
-  - subss, subsd : 실수 값 뺄셈 (single/double)
-  - mulss, mulsd : 실수 값 곱셈 (single/double)
-  - divss, divsd : 실수 값 나눗셈 (single/double)
-  - sqrtss, sqrtsd : 실수 값 제곱근
-  - round : 실수를 반올림/올림/내림
 
 ... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
 
