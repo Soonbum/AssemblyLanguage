@@ -121,10 +121,10 @@
 | 21 | ID | ID Flag | 시스템 | CPUID 명령어를 지원하는지 확인용 |
 
 * RFLAGS 레지스터 조작 명령어
-  - PUSHFQ (Push Flags Quadword): 현재 RFLAGS 값을 스택에 저장합니다. (EFLAGS(32비트)에 대해서는 PUSHFD, FLAGS(16비트)에 대해서는 PUSHF)
-  - POPFQ (Pop Flags Quadword): 스택에 있는 값을 RFLAGS로 복원합니다. (EFLAGS(32비트)에 대해서는 POPFD, FLAGS(16비트)에 대해서는 POPF)
-  - STC / CLC: Carry Flag(CF)를 직접 1로 만들거나(Set) 0으로 만듭니다(Clear).
-  - STD / CLD: Direction Flag(DF)를 직접 설정하거나 해제합니다.
+  - `PUSHFQ` (Push Flags Quadword): 현재 RFLAGS 값을 스택에 저장합니다. (EFLAGS(32비트)에 대해서는 `PUSHFD`, FLAGS(16비트)에 대해서는 `PUSHF`)
+  - `POPFQ` (Pop Flags Quadword): 스택에 있는 값을 RFLAGS로 복원합니다. (EFLAGS(32비트)에 대해서는 `POPFD`, FLAGS(16비트)에 대해서는 `POPF`)
+  - `STC` / `CLC`: Carry Flag(CF)를 직접 1로 만들거나(Set) 0으로 만듭니다(Clear).
+  - `STD` / `CLD`: Direction Flag(DF)를 직접 설정하거나 해제합니다.
   - (나머지는 생략)
 
 ### 엔디안
@@ -711,7 +711,7 @@ _start:
     * SIMD (Single Instruction Multiple Data) 기술 (FPU보다 더 빠름)
       - SSE (Streaming SIMD Extensions): 128비트 레지스터를 사용하여 여러 개의 소수점 연산을 동시에 처리
       - AVX (Advanced Vector Extensions): 256비트나 512비트 레지스터를 사용하여 한 번에 8~16개의 소수점 연산을 병렬로 처리
-  - .data 섹션 예시
+  - .data 섹션 예시를 통한 데이터 타입 정의 보기
     ```
     section .data
         ; 1. Single Precision (FP32) - 32비트 (4바이트)
@@ -733,7 +733,7 @@ _start:
         f128_val1:     dq 0.0, 0.0    ; 16바이트 공간을 0으로 초기화 (2개의 공간)
         f128_val2:     do 0.0         ; 16바이트 공간을 0으로 초기화 (1개의 공간)
     ```
-  - .bss 섹션 예시
+  - .bss 섹션 예시를 통한 데이터 타입 정의 보기
     ```
     section .bss
         ; 1. Half Precision (FP16 / Bfloat16) - 16비트 (2바이트)
@@ -752,7 +752,7 @@ _start:
         quad_val:      reso 1    ; 1개의 octoword(16바이트) 예약
     ```
 
-
+* (... 제미나이 대답, 다음부터 볼 것: 1. 정수 vs 부동소수점 명령어 대응표 (SSE/AVX 기준)
 
 
 
