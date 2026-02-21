@@ -136,24 +136,22 @@ Options ([] 안의 값은 기본값을 의미함):
     -E (또는 -e)  전처리만 수행 (기본적으로 stdout(표준출력)으로 출력함)
     -a            전처리하지 않음 (어셈블 전용)
     -Ipath        include 파일 경로에 pathname 추가
-    -Pfile        pre-include a file (also --include)
-    -Dmacro[=str] pre-define a macro
-    -Umacro       undefine a macro
-   --pragma str   pre-executes a specific %%pragma
-   --before str   add line (usually a preprocessor statement) before the input
-   --no-line      ignore %line directives in input
+    -Pfile        파일 미리 include (--include 역시 가능)
+    -Dmacro[=str] 매크로 미리 정의
+    -Umacro       매크로 정의 취소
+   --pragma str   지정한 %%pragma 미리 실행
+   --before str   입력 전에 라인 추가 (보통 전처리기 구문)
+   --no-line      입력 내 %line 지시어 무시
 
-   --prefix str   prepend the given string to the names of all extern,
-                  common and global symbols (also --gprefix)
-   --suffix str   append the given string to the names of all extern,
-                  common and global symbols (also --gprefix)
+   --prefix str   prepend the given string to the names of all extern, common and global symbols (also --gprefix)
+   --suffix str   append the given string to the names of all extern, common and global symbols (also --gprefix)
    --lprefix str  prepend the given string to local symbols
    --lpostfix str append the given string to local symbols
 
    --reproducible attempt to produce run-to-run identical output
 
-    -w+x          enable warning x (also -Wx)
-    -w-x          disable warning x (also -Wno-x)
+    -w+x          경고 x 활성화 (-Wx 역시 가능)
+    -w-x          경고 x 비활성화 (-Wno-x 역시 가능)
     -w[+-]error   promote all warnings to errors (also -Werror)
     -w[+-]error=x promote warning x to errors (also -Werror=x)
        all                  all possible warnings
