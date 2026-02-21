@@ -50,6 +50,7 @@
 
 * `nasm --help`를 하면 다음과 같은 내용이 나옴
 
+```
 사용법: nasm [-@ response_file] [options...] [--] filename
        nasm -v (또는 --v)
 
@@ -229,6 +230,7 @@ Options ([] 안의 값은 기본값을 의미함):
        rep                  %rep count [1000000]
        eval                 expression evaluation descent [8192]
        lines                total source lines processed [2000000000]
+```
 
 ## 레지스터
 
