@@ -25,7 +25,7 @@
       $ sudo apt install nasm build-essential gdb
       ```
 
-    - 컴파일 및 실행
+    - 어셈블 및 실행
  
       ```
       $ nasm -f elf64 hello.asm -o hello.o
@@ -45,6 +45,190 @@
     - 3. 'x86 and x86_64 Assembly' 확장을 설치하면 코드 하이라이팅이 지원됩니다.
 
     - 4. **'GDB Debugger'**를 통해 레지스터 값을 실시간으로 보며 디버깅할 수 있습니다. (... 이후 내용 나중에 추가)
+
+## NASM (Netwide Assembler)
+
+* `nasm --help`를 하면 다음과 같은 내용이 나옴
+
+사용법: nasm [-@ response_file] [options...] [--] filename
+       nasm -v (또는 --v)
+
+Options ([] 안의 값은 기본값을 의미함):
+
+    -h            이 도움말 텍스트를 보여주고 종료 (--help 또한 동일함)
+    -v (또는 --v) NASM 버전 번호를 보여주고 종료
+    -@ file       어셈블하고자 하는 .asm 파일; 라인 하나당 커맨드 라인 옵션 하나
+
+    -o outfile    outfile로 출력 작성
+    --keep-all    오류가 발생하더라도 생성된 출력 파일들이 제거되지 않음
+
+    -Xformat      오류 보고 포맷 지정 (gnu 또는 vc)
+    -s            오류 메시지를 stdout(표준출력)으로 리디렉션
+    -Zfile        오류 메시지를 파일로 리디렉션
+
+    -M            Makefile 의존성 목록을 stdout(표준출력)으로 내보냄
+    -MG           d:o, 누락된 파일은 생성된 것으로 간주됨
+    -MF file      Makefile 의존성 파일을 지정함
+    -MD file      어셈블 후에 의존성 파일 생성
+    -MT file      의존성 대상 이름을 지정함
+    -MQ file      의존성 대상 이름을 지정함 (""를 붙임)
+    -MP           가짜(phony) 대상을 생성함
+
+    -f format     출력 파일 포맷 선택
+       bin                  Flat raw binary (MS-DOS, embedded, ...) [기본값]
+       ith                  Intel Hex encoded flat binary
+       srec                 Motorola S-records encoded flat binary
+       aout                 Linux a.out
+       aoutb                NetBSD/FreeBSD a.out
+       coff                 COFF (i386) (DJGPP, some Unix variants)
+       elf32                ELF32 (i386) (Linux, most Unix variants)
+       elf64                ELF64 (x86-64) (Linux, most Unix variants)
+       elfx32               ELFx32 (ELF32 for x86-64) (Linux)
+       as86                 as86 (bin86/dev86 toolchain)
+       obj                  Intel/Microsoft OMF (MS-DOS, OS/2, Win16)
+       win32                Microsoft extended COFF for Win32 (i386)
+       win64                Microsoft extended COFF for Win64 (x86-64)
+       ieee                 IEEE-695 (LADsoft variant) object file format
+       macho32              Mach-O i386 (Mach, including MacOS X and variants)
+       macho64              Mach-O x86-64 (Mach, including MacOS X and variants)
+       dbg                  Trace of all info passed to output stage
+       elf                  Legacy alias for "elf32"
+       macho                Legacy alias for "macho32"
+       win                  Legacy alias for "win32"
+
+    -g            디버깅 정보 생성
+    -F format     디버깅 포맷 선택 (출력 포맷에 따라 다름)
+    -gformat      -g -F 포맷과 같음
+       elf32:     dwarf     ELF32 (i386) dwarf (최신) [기본값]
+                  stabs     ELF32 (i386) stabs (이전)
+       elf64:     dwarf     ELF64 (x86-64) dwarf (최신) [기본값]
+                  stabs     ELF64 (x86-64) stabs (이전)
+       elfx32:    dwarf     ELFx32 (x86-64) dwarf (최신) [기본값]
+                  stabs     ELFx32 (x86-64) stabs (이전)
+       obj:       borland   Borland Debug Records [기본값]
+       win32:     cv8       Codeview 8+ [기본값]
+       win64:     cv8       Codeview 8+ [기본값]
+       ieee:      ladsoft   LADsoft Debug Records [기본값]
+       macho32:   dwarf     Mach-O i386 dwarf for Darwin/MacOS [기본값]
+       macho64:   dwarf     Mach-O x86-64 dwarf for Darwin/MacOS [기본값]
+       dbg:       debug     Trace of all info passed to debug stage [기본값]
+
+    -l listfile   리스팅 내용을 파일로 저장
+    -Lflags...    리스트 파일에 선택적인 정보 추가
+       -Lb        내장 매크로 패키지를 보여줌 (standard and %use)
+       -Ld        10진수로 바이트 및 반복 횟수를 보여줌
+       -Le        전처리된 출력을 보여줌
+       -Lf        .nolist 무시 (강제로 출력)
+       -Lm        확장된 파라미터와 함께 멀티 라인 매크로 호출을 보여줌
+       -Lp        오류가 발생한 경우 모든 패스에 대한 리스트 파일을 출력
+       -Ls        모든 싱글 라인 매크로 정의를 보여줌
+       -Lw        모든 라인 이후에 출력을 flush (매우 느림!)
+       -L+        -Lw를 제외한 모든 리스팅 옵션 활성화 (매우 상세함!)
+
+    -Oflags...    명령어, 상수, 브랜치 오프셋을 최적화
+       -O0        최적화 없음
+       -O1        최소한의 최적화
+       -Ox        멀티패스 최적화 (기본값)
+       -Ov        마지막에 실행한 패스 횟수를 표시함
+    -t            제한된 SciTech TASM 호환 모드로 어셈블
+
+    -E (또는 -e)  전처리만 수행 (기본적으로 stdout(표준출력)으로 출력함)
+    -a            전처리하지 않음 (어셈블 전용)
+    -Ipath        include 파일 경로에 pathname 추가
+    -Pfile        pre-include a file (also --include)
+    -Dmacro[=str] pre-define a macro
+    -Umacro       undefine a macro
+   --pragma str   pre-executes a specific %%pragma
+   --before str   add line (usually a preprocessor statement) before the input
+   --no-line      ignore %line directives in input
+
+   --prefix str   prepend the given string to the names of all extern,
+                  common and global symbols (also --gprefix)
+   --suffix str   append the given string to the names of all extern,
+                  common and global symbols (also --gprefix)
+   --lprefix str  prepend the given string to local symbols
+   --lpostfix str append the given string to local symbols
+
+   --reproducible attempt to produce run-to-run identical output
+
+    -w+x          enable warning x (also -Wx)
+    -w-x          disable warning x (also -Wno-x)
+    -w[+-]error   promote all warnings to errors (also -Werror)
+    -w[+-]error=x promote warning x to errors (also -Werror=x)
+       all                  all possible warnings
+       db-empty             no operand for data declaration [on]
+       ea                   all warnings prefixed with "ea-"
+       ea-absolute          absolute address cannot be RIP-relative [on]
+       ea-dispsize          displacement size ignored on absolute address [on]
+       float                all warnings prefixed with "float-"
+       float-denorm         floating point denormal [off]
+       float-overflow       floating point overflow [on]
+       float-toolong        too many digits in floating-point number [on]
+       float-underflow      floating point underflow [off]
+       forward              forward reference may have unpredictable results [on]
+       label                all warnings prefixed with "label-"
+       label-orphan         labels alone on lines without trailing `:' [on]
+       label-redef          label redefined to an identical value [off]
+       label-redef-late     label (re)defined during code generation [error]
+       number-overflow      numeric constant does not fit [on]
+       obsolete             all warnings prefixed with "obsolete-"
+       obsolete-nop         instruction obsolete and is a noop on the target CPU [on]
+       obsolete-removed     instruction obsolete and removed on the target CPU [on]
+       obsolete-valid       instruction obsolete but valid on the target CPU [on]
+       phase                phase error during stabilization [off]
+       pp                   all warnings prefixed with "pp-"
+       pp-else              all warnings prefixed with "pp-else-"
+       pp-else-elif         %elif after %else [on]
+       pp-else-else         %else after %else [on]
+       pp-empty-braces      empty %{} construct [on]
+       pp-environment       nonexistent environment variable [on]
+       pp-macro             all warnings prefixed with "pp-macro-"
+       pp-macro-def         all warnings prefixed with "pp-macro-def-"
+       pp-macro-def-case-single single-line macro defined both case sensitive and insensitive [on]
+       pp-macro-def-greedy-single single-line macro [on]
+       pp-macro-def-param-single single-line macro defined with and without parameters [error]
+       pp-macro-defaults    macros with more default than optional parameters [on]
+       pp-macro-params      all warnings prefixed with "pp-macro-params-"
+       pp-macro-params-legacy improperly calling multi-line macro for legacy support [on]
+       pp-macro-params-multi multi-line macro calls with wrong parameter count [on]
+       pp-macro-params-single single-line macro calls with wrong parameter count [on]
+       pp-macro-redef-multi redefining multi-line macro [on]
+       pp-open              all warnings prefixed with "pp-open-"
+       pp-open-braces       unterminated %{...} [on]
+       pp-open-brackets     unterminated %[...] [on]
+       pp-open-string       unterminated string [on]
+       pp-rep-negative      regative %rep count [on]
+       pp-sel-range         %sel() argument out of range [on]
+       pp-trailing          trailing garbage ignored [on]
+       pragma               all warnings prefixed with "pragma-"
+       pragma-bad           malformed %pragma [off]
+       pragma-empty         empty %pragma directive [off]
+       pragma-na            %pragma not applicable to this compilation [off]
+       pragma-unknown       unknown %pragma facility or directive [off]
+       prefix               all warnings prefixed with "prefix-"
+       prefix-bnd           invalid BND prefix [on]
+       prefix-hle           invalid HLE prefix [on]
+       prefix-lock          LOCK prefix on unlockable instructions [on]
+       prefix-opsize        invalid operand size prefix [on]
+       prefix-seg           segment prefix ignored in 64-bit mode [on]
+       ptr                  non-NASM keyword used in other assemblers [on]
+       regsize              register size specification ignored [on]
+       unknown-warning      unknown warning in -W/-w or warning directive [off]
+       user                 %warning directives [on]
+       warn-stack-empty     warning stack empty [on]
+       zeroing              RESx in initialized section becomes zero [on]
+       zext-reloc           relocation zero-extended to match output format [on]
+       other                any warning not specifically mentioned above [on]
+
+   --limit-X val  set execution limit X
+       passes               total number of passes [unlimited]
+       stalled-passes       number of passes without forward progress [1000]
+       macro-levels         levels of macro expansion [10000]
+       macro-tokens         tokens processed during single-lime macro expansion [10000000]
+       mmacros              multi-line macros before final return [100000]
+       rep                  %rep count [1000000]
+       eval                 expression evaluation descent [8192]
+       lines                total source lines processed [2000000000]
 
 ## 레지스터
 
@@ -473,7 +657,7 @@ printResult:
 
 ## 매크로
 
-* 매크로는 기계어 명령이 아님, 컴파일 할 때 미리 정의된 코드로 대체됨
+* 매크로는 기계어 명령이 아님, 어셈블 할 때 미리 정의된 코드로 대체됨
   - 함수와 비교해서 점프 오버헤드가 없지만, 매크로를 많이 사용할수록 바이너리 크기가 커진다는 단점이 있음
   - 간단한 것은 괜찮지만 남용하지 않는 편이 좋음
 
@@ -512,7 +696,7 @@ _start:
 ### 조건부 어셈블리
 
 * 조건부 어셈블리를 사용하면 다음과 같은 이점이 있다.
-  - 플랫폼 대응: 윈도우용 코드와 리눅스용 코드를 한 파일에 짜두고, 빌드할 때 환경에 맞는 부분만 골라서 컴파일할 수 있음
+  - 플랫폼 대응: 윈도우용 코드와 리눅스용 코드를 한 파일에 짜두고, 빌드할 때 환경에 맞는 부분만 골라서 어셈블할 수 있음
   - 디버깅: 개발 중에는 로그 출력 코드를 넣고, 배포할 때는 %ifdef 하나만 꺼서 로그 코드를 싹 제거해 성능을 높일 수 있음
   - 최적화: CPU 사양에 따라 특정 명령어를 지원하는지 체크하여 최적의 코드를 선택하게 할 수 있음
 
