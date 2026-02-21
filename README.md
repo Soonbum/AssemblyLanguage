@@ -143,68 +143,68 @@ Options ([] 안의 값은 기본값을 의미함):
    --before str   입력 전에 라인 추가 (보통 전처리기 구문)
    --no-line      입력 내 %line 지시어 무시
 
-   --prefix str   prepend the given string to the names of all extern, common and global symbols (also --gprefix)
-   --suffix str   append the given string to the names of all extern, common and global symbols (also --gprefix)
-   --lprefix str  prepend the given string to local symbols
-   --lpostfix str append the given string to local symbols
+   --prefix str   모든 extern, 공통 및 글로벌 심볼의 이름들 앞에 주어진 문자열을 붙임 (--gprefix 역시 가능)
+   --suffix str   모든 extern, 공통 및 글로벌 심볼의 이름들 뒤에 주어진 문자열을 붙임 (--gprefix 역시 가능)
+   --lprefix str  로컬 심볼의 이름들 앞에 주어진 문자열을 붙임
+   --lpostfix str 로컬 심볼의 이름들 뒤에 주어진 문자열을 붙임
 
    --reproducible attempt to produce run-to-run identical output
 
     -w+x          경고 x 활성화 (-Wx 역시 가능)
     -w-x          경고 x 비활성화 (-Wno-x 역시 가능)
-    -w[+-]error   promote all warnings to errors (also -Werror)
-    -w[+-]error=x promote warning x to errors (also -Werror=x)
-       all                  all possible warnings
-       db-empty             no operand for data declaration [on]
-       ea                   all warnings prefixed with "ea-"
-       ea-absolute          absolute address cannot be RIP-relative [on]
-       ea-dispsize          displacement size ignored on absolute address [on]
-       float                all warnings prefixed with "float-"
-       float-denorm         floating point denormal [off]
-       float-overflow       floating point overflow [on]
-       float-toolong        too many digits in floating-point number [on]
-       float-underflow      floating point underflow [off]
-       forward              forward reference may have unpredictable results [on]
-       label                all warnings prefixed with "label-"
-       label-orphan         labels alone on lines without trailing `:' [on]
-       label-redef          label redefined to an identical value [off]
-       label-redef-late     label (re)defined during code generation [error]
-       number-overflow      numeric constant does not fit [on]
-       obsolete             all warnings prefixed with "obsolete-"
-       obsolete-nop         instruction obsolete and is a noop on the target CPU [on]
-       obsolete-removed     instruction obsolete and removed on the target CPU [on]
-       obsolete-valid       instruction obsolete but valid on the target CPU [on]
-       phase                phase error during stabilization [off]
-       pp                   all warnings prefixed with "pp-"
-       pp-else              all warnings prefixed with "pp-else-"
-       pp-else-elif         %elif after %else [on]
-       pp-else-else         %else after %else [on]
-       pp-empty-braces      empty %{} construct [on]
-       pp-environment       nonexistent environment variable [on]
-       pp-macro             all warnings prefixed with "pp-macro-"
-       pp-macro-def         all warnings prefixed with "pp-macro-def-"
-       pp-macro-def-case-single single-line macro defined both case sensitive and insensitive [on]
-       pp-macro-def-greedy-single single-line macro [on]
-       pp-macro-def-param-single single-line macro defined with and without parameters [error]
-       pp-macro-defaults    macros with more default than optional parameters [on]
-       pp-macro-params      all warnings prefixed with "pp-macro-params-"
-       pp-macro-params-legacy improperly calling multi-line macro for legacy support [on]
-       pp-macro-params-multi multi-line macro calls with wrong parameter count [on]
-       pp-macro-params-single single-line macro calls with wrong parameter count [on]
-       pp-macro-redef-multi redefining multi-line macro [on]
-       pp-open              all warnings prefixed with "pp-open-"
+    -w[+-]error   모든 경고를 오류로 격상시킴 (-Werror 역시 가능)
+    -w[+-]error=x 경고 x를 오류로 격상시킴 (-Werror=x 역시 가능)
+       all                  가능한 모든 경고
+       db-empty             데이터 선언에 대해 피연산자가 없는 경우 [on]
+       ea                   접두사 "ea-"가 붙은 모든 경고
+       ea-absolute          절대주소가 RIP-상대적인 값이 될 수 없는 경우 [on]
+       ea-dispsize          절대주소 상에서 변위 크기가 무시됨 [on]
+       float                접두사 "float-"가 붙은 모든 경고
+       float-denorm         부동소수점 비정규화됨 [off]
+       float-overflow       부동소수점 오버플로우 [on]
+       float-toolong        부동소수점 수의 자리가 너무 길다 [on]
+       float-underflow      부동소수점 언더플로우 [off]
+       forward              전방향 참조가 예측할 수 없는 결과를 초래할 수 있음 [on]
+       label                접두사 "label-"가 붙은 모든 경고
+       label-orphan         라벨 뒤에 ':'가 없음 [on]
+       label-redef          동일한 값으로 라벨이 재정의됨 [off]
+       label-redef-late     코드 생성 중에 라벨이 (재)정의됨 [error]
+       number-overflow      숫자 상수가 알맞지 않음 [on]
+       obsolete             접두사 "obsolete-"가 붙은 모든 경고
+       obsolete-nop         더 이상 사용하지 않는 명령어이며 대상 CPU에서 아무런 작업도 수행하지 않음 [on]
+       obsolete-removed     더 이상 사용하지 않는 명령어이며 대상 CPU에서 제거되었음 [on]
+       obsolete-valid       더 이상 사용하지 않는 명령어이지만 대상 CPU에서는 유효함 [on]
+       phase                안정화 도중 phase 오류 [off]
+       pp                   접두사 "pp-"가 붙은 모든 경고
+       pp-else              접두사 "pp-else-"가 붙은 모든 경고
+       pp-else-elif         %else 다음에 %elif가 나옴 [on]
+       pp-else-else         %else 다음에 %else가 나옴 [on]
+       pp-empty-braces      비어 있는 %{} 생성자 [on]
+       pp-environment       존재하지 않는 환경 변수 [on]
+       pp-macro             접두사 "pp-macro-"가 붙은 모든 경고
+       pp-macro-def         접두사 "pp-macro-def-"가 붙은 모든 경고
+       pp-macro-def-case-single     대소문자 구분/미구분 방식이 혼용된 방식으로 정의된 싱글-라인 매크로 [on]
+       pp-macro-def-greedy-single   싱글-라인 매크로 [on]
+       pp-macro-def-param-single    파라미터가 포함된/포함되지 않은 방식이 혼용된 방식으로 정의된 싱글-라인 매크로 [error]
+       pp-macro-defaults    선택적인 파라미터보다 더 많은 기본값을 가진 매크로 [on]
+       pp-macro-params      접두사 "pp-macro-params-"가 붙은 모든 경고
+       pp-macro-params-legacy       improperly calling multi-line macro for legacy support [on]
+       pp-macro-params-multi        multi-line macro calls with wrong parameter count [on]
+       pp-macro-params-single       single-line macro calls with wrong parameter count [on]
+       pp-macro-redef-multi         redefining multi-line macro [on]
+       pp-open              접두사 "pp-open-"가 붙은 모든 경고
        pp-open-braces       unterminated %{...} [on]
        pp-open-brackets     unterminated %[...] [on]
        pp-open-string       unterminated string [on]
        pp-rep-negative      regative %rep count [on]
        pp-sel-range         %sel() argument out of range [on]
        pp-trailing          trailing garbage ignored [on]
-       pragma               all warnings prefixed with "pragma-"
+       pragma               접두사 "pragma-"가 붙은 모든 경고
        pragma-bad           malformed %pragma [off]
        pragma-empty         empty %pragma directive [off]
        pragma-na            %pragma not applicable to this compilation [off]
        pragma-unknown       unknown %pragma facility or directive [off]
-       prefix               all warnings prefixed with "prefix-"
+       prefix               접두사 "prefix-"가 붙은 모든 경고
        prefix-bnd           invalid BND prefix [on]
        prefix-hle           invalid HLE prefix [on]
        prefix-lock          LOCK prefix on unlockable instructions [on]
@@ -213,8 +213,8 @@ Options ([] 안의 값은 기본값을 의미함):
        ptr                  non-NASM keyword used in other assemblers [on]
        regsize              register size specification ignored [on]
        unknown-warning      unknown warning in -W/-w or warning directive [off]
-       user                 %warning directives [on]
-       warn-stack-empty     warning stack empty [on]
+       user                 %warning 지시어 [on]
+       warn-stack-empty     경고 스택 비어 있음 [on]
        zeroing              RESx in initialized section becomes zero [on]
        zext-reloc           relocation zero-extended to match output format [on]
        other                any warning not specifically mentioned above [on]
