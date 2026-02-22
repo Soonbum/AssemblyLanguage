@@ -116,13 +116,13 @@ Options ([] 안의 값은 기본값을 의미함):
 
     -l listfile   리스팅 내용을 파일로 저장
     -Lflags...    리스트 파일에 선택적인 정보 추가
-       -Lb        내장 매크로 패키지를 보여줌 (standard and %use)
+       -Lb        내장 매크로 패키지를 보여줌 (표준 및 %use)
        -Ld        10진수로 바이트 및 반복 횟수를 보여줌
        -Le        전처리된 출력을 보여줌
        -Lf        .nolist 무시 (강제로 출력)
-       -Lm        확장된 파라미터와 함께 멀티 라인 매크로 호출을 보여줌
+       -Lm        확장된 파라미터와 함께 멀티-라인 매크로 호출을 보여줌
        -Lp        오류가 발생한 경우 모든 패스에 대한 리스트 파일을 출력
-       -Ls        모든 싱글 라인 매크로 정의를 보여줌
+       -Ls        모든 싱글-라인 매크로 정의를 보여줌
        -Lw        모든 라인 이후에 출력을 flush (매우 느림!)
        -L+        -Lw를 제외한 모든 리스팅 옵션 활성화 (매우 상세함!)
 
@@ -148,7 +148,7 @@ Options ([] 안의 값은 기본값을 의미함):
    --lprefix str  로컬 심볼의 이름들 앞에 주어진 문자열을 붙임
    --lpostfix str 로컬 심볼의 이름들 뒤에 주어진 문자열을 붙임
 
-   --reproducible attempt to produce run-to-run identical output
+   --reproducible 실행할 때마다 매번 동일한 출력(바이너리 결과물)을 생성하도록 시도함 (동일한 hash 값 보장)
 
     -w+x          경고 x 활성화 (-Wx 역시 가능)
     -w-x          경고 x 비활성화 (-Wno-x 역시 가능)
@@ -188,16 +188,16 @@ Options ([] 안의 값은 기본값을 의미함):
        pp-macro-def-param-single    파라미터가 포함된/포함되지 않은 방식이 혼용된 방식으로 정의된 싱글-라인 매크로 [error]
        pp-macro-defaults    선택적인 파라미터보다 더 많은 기본값을 가진 매크로 [on]
        pp-macro-params      접두사 "pp-macro-params-"가 붙은 모든 경고
-       pp-macro-params-legacy       improperly calling multi-line macro for legacy support [on]
-       pp-macro-params-multi        multi-line macro calls with wrong parameter count [on]
-       pp-macro-params-single       single-line macro calls with wrong parameter count [on]
-       pp-macro-redef-multi         redefining multi-line macro [on]
+       pp-macro-params-legacy       레거시 지원을 위해 멀티-라인 매크로 부적절하게 호출하기 [on]
+       pp-macro-params-multi        멀티-라인 매크로 호출시 파라미터 개수가 잘못됨 [on]
+       pp-macro-params-single       싱글-라인 매크로 호출시 파라미터 개수가 잘못됨 [on]
+       pp-macro-redef-multi         멀티-라인 매크로를 재정의함 [on]
        pp-open              접두사 "pp-open-"가 붙은 모든 경고
-       pp-open-braces       unterminated %{...} [on]
-       pp-open-brackets     unterminated %[...] [on]
-       pp-open-string       unterminated string [on]
-       pp-rep-negative      regative %rep count [on]
-       pp-sel-range         %sel() argument out of range [on]
+       pp-open-braces       brace를 닫지 않음: %{...} [on]
+       pp-open-brackets     bracket을 닫지 않음: %[...] [on]
+       pp-open-string       문자열을 닫지 않음 [on]
+       pp-rep-negative      반복 횟수를 의미하는 %rep가 음수임 [on]
+       pp-sel-range         %sel() 인자가 범위를 벗어남 [on]
        pp-trailing          trailing garbage ignored [on]
        pragma               접두사 "pragma-"가 붙은 모든 경고
        pragma-bad           malformed %pragma [off]
