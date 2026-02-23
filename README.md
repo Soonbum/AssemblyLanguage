@@ -1078,8 +1078,11 @@ _start:
   - ...
   - `movhlps`: Moves two-packed single-precision floating-point values from the high quadword of an XMM register to the low quadword of another XMM register. (... 피연산자에 대한 설명 추가)
   - `movlhps`: Moves two-packed single-precision floating-point values from the low quadword of an XMM register to the high quadword of another XMM register. (... 피연산자에 대한 설명 추가)
-  - `fld`
-  - `fst`
+  - `fld` (Load): 1번째 피연산자인 메모리 값을 FPU 스택 top(`st0`)에 push (메모리 -> 스택 레지스터)
+  - `fst` (Store): `st0` 값을 1번째 피연산자인 메모리에 복사 (스택 레지스터 -> 메모리)
+  - `fstp` (Store and Pop): `st0` 값을 1번째 피연산자인 메모리에 저장하고 스택에서 제거
+  - `fild` (Integer Load): 
+  - `fistp` (Integer Store)
 
 ### 연산 명령어
 
