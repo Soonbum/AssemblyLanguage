@@ -131,7 +131,7 @@ Options ([] 안의 값은 기본값을 의미함):
        -O1        최소한의 최적화
        -Ox        멀티패스 최적화 (기본값)
        -Ov        마지막에 실행한 패스 횟수를 표시함
-    -t            제한된 SciTech TASM 호환 모드로 어셈블
+    -t            제한된 SciTech Borland의 TASM 호환 모드로 어셈블
 
     -E (또는 -e)  전처리만 수행 (기본적으로 stdout(표준출력)으로 출력함)
     -a            전처리하지 않음 (어셈블 전용)
@@ -1059,8 +1059,8 @@ _start:
 
 
 
+... 1. 실수 관련 명령어 다 정리할 것
 
+... 2. 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
 
-... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
-
-... NASM -- https://www.nasm.us/doc/nasm01.html
+... 3. NASM -- [https://www.nasm.us/doc/nasm01.html](https://www.nasm.us/doc/nasm03.html)
