@@ -230,6 +230,53 @@ Options ([] 안의 값은 기본값을 의미함):
        lines                처리된 총 소스 라인 수 [2000000000]
 ```
 
+### 문법
+
+```
+[label:]   instruction  operands        ; comment
+```
+
+* 기본 문법은 다음과 같다.
+  - `label:`: 선택사항이며 `jmp` 명령어에 사용됨
+    * 사용할 수 있는 글자는 '영문자', '숫자', '_', '$', '#', '@', '~', '.', '?'
+    * 맨 처음 글자는 '영문자', '.', '_', '?'만 가능함
+  - `instruction`: 연산자 (필수)
+  - `operands`: 연산자에 따라 필수 혹은 선택, "[]"로 감쌀 경우 해당 레지스터, 메모리의 값은 특정 주소 값을 의미함 (C언어의 포인터 개념)
+    * 숫자의 경우
+      - 10진수: 접미어 d, t 또는 접두사 0d, 0t (아무 것도 없으면 기본적으로 10진수)
+      - 16진수: 접미어 h, x 또는 접두사 0h, 0x
+      - 8진수: 접미어 q, o 또는 접두사 0q, 0o
+      - 2진수: 접미어 b, y 또는 접두사 0b, 0y
+    * 문자열의 경우
+      - 단일 문자는 '로 감싸기
+      - 여러 문자들의 경우 "로 감싸기
+      - 이스케이프 문자 예시는 다음과 같다.
+        ```
+        \'          작은 따옴표 (')
+        \"          큰 따옴표 (")
+        \`          억음부호 (`)
+        \\          백슬래시 (\)
+        \?          물음표 (?)
+        \a          BEL (ASCII 7), Bell을 의미함 (비프음 발생)
+        \b          BS  (ASCII 8), BackSpace를 의미하며 커서를 앞으로 옮김 (후에 글자를 표시하면 기존 글자를 덮어쓰게 됨)
+        \t          TAB (ASCII 9), Horizontal Tab
+        \n          LF  (ASCII 10), Line Feed를 의미하며 줄바꿈 문자 역할을 함
+        \v          VT  (ASCII 11), Vertical Tab (요즘은 거의 사용하지 않음)
+        \f          FF  (ASCII 12), Form Feed를 의미하며 프린터에서는 페이지 넘김 또는 화면 지우기
+        \r          CR  (ASCII 13), Carriage Return을 의미하며 커서를 가장 왼쪽으로 이동시킴 (CR + LF: Windows, LF: Unix/Mac)
+        \e          ESC (ASCII 27), Escape를 의미하며 터미널 색상을 바꾸거나 특수 제어 기능을 사용할 때 주로 쓰임
+        \377        최대 3글자의 8진수 - 바이트 문자 (예: `\0`: NULL, `\033`: ESC)
+        \xFF        최대 2글자의 16진수 - 바이트 문자 (예: `\x00`: NULL, `\xFF`: All bits set, `\x7F`: DEL, `\x20`: Space, `\x02`: 본문 시간, `\x03`: 본문 끝)
+        \u1234      4글자의 16진수 - Unicode 문자
+        \U12345678  8글자의 16진수 - Unicode 문자
+
+        db `\u263a`            ; UTF-8 스마일
+        db `\xe2\x98\xba`      ; UTF-8 스마일
+        db 0E2h, 098h, 0BAh    ; UTF-8 스마일
+        ```
+  - `; comment`: 코멘트 기입
+  - 기타: `\`(역슬래시) 문자를 사용하여 줄바꿈 가능함
+
 ## 레지스터
 
 ### 레지스터의 크기
@@ -884,6 +931,39 @@ _start:
     mov eax, [rbx + Person.age]  ; RBX가 구조체의 시작 주소라면, 32바이트(name) 뒤의 age 값을 읽어옴 (이름으로 참조하므로 오프셋 숫자를 매번 안 바꿔도 되서 편리함)
     ```
 
+* 그 외에도 상당히 많은 매크로가 있음
+  - `%line`
+  - `%abs()`
+  - `%b2hs()`
+  - `%hs2b()`
+  - `%chr()`
+  - `%cond()`
+  - `%count()`
+  - `%depend()`
+  - `%eval()`
+  - `%find()`
+  - `%findi()`
+  - `%hex()`
+  - `%is()` 패밀리
+  - `%map()`
+  - `%null()`
+  - `%num()`
+  - `%ord()`
+  - `%pathsearch()`
+  - `%realpath()`
+  - `%sel()`
+  - `%selbits()`
+  - `%str()`
+  - `%strcat()`
+  - `%strlen()`
+  - `%substr()`
+  - `%tok()`
+  - 다음을 참조할 것... https://www.nasm.us/doc/nasm05.html
+  - `__?FILE?__`: 파일 이름
+  - `__?LINE?__`: 라인 번호
+  - 다음을 참조할 것... https://www.nasm.us/doc/nasm06.html
+  - ...
+
 ## 실수 연산
 
 * 앞에서 정수, 문자열을 다루었는데 문자도 실상 정수 데이터임을 감안한다면 지금까지 본 것은 전부 정수 연산/처리만 배운 것이다.
@@ -1061,6 +1141,4 @@ _start:
 
 ... 1. 실수 관련 명령어 다 정리할 것
 
-... 2. 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md
-
-... 3. NASM -- [https://www.nasm.us/doc/nasm01.html](https://www.nasm.us/doc/nasm03.html)
+... 2. 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md --> 고급 언어에서 asm 임베딩하기
