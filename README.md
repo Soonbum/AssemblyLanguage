@@ -1235,7 +1235,187 @@ _start:
     | `fcomi` | 비교 결과를 즉시 CPU 플래그(EFLAGS)에 반영 (현대적 방식) |
     | `ftst` | st0가 0.0인지 확인 (Test) |
 
+## 고급 언어에서 어셈블리 호출하기
 
+* 고급 언어와 어셈블리를 혼합해서 사용하는 방법은 성능 면에서 강력한 장점을 가질 수 있음
+  - C/C++의 경우 `__asm`, `asm`과 같은 키워드를 이용해 인라인 어셈블리 사용 가능
+  - 반면, Java나 C# 같은 Managed 언어의 경우 인라인 어셈블리는 지원하지 않으나 다른 우회 방법이 다 존재함
 
+### 어셈블리 호출 예시
 
-... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md --> 고급 언어에서 asm 임베딩하기
+* 예제: C++ x86 기준
+  - x64 환경에서는 인라인 어셈블리를 쓸 수 없으며, 별도의 .asm 파일을 만들거나 Intrinsic 함수를 써야 함
+
+```
+#include <iostream>
+
+int main() {
+    int a = 10, b = 20, result = 0;
+
+    // MSVC x86 인라인 어셈블리
+    __asm {
+        mov eax, a        ; a의 값을 eax 레지스터로
+        add eax, b        ; eax에 b를 더함
+        mov result, eax   ; 결과를 result 변수에 저장
+    }
+
+    std::cout << "결과: " << result << std::endl;
+    return 0;
+}
+```
+
+* 예제: C++ Intrinsic 함수 사용
+
+```
+#include <iostream>
+#include <immintrin.h> // SIMD Intrinsic 헤더
+
+int main() {
+    // 128비트 레지스터(XMM)에 4개의 float 값을 로드 (SSE 명령어)
+    // NASM의 movups와 대응
+    __m128 a = _mm_set_ps(4.0f, 3.0f, 2.0f, 1.0f);
+    __m128 b = _mm_set_ps(10.0f, 10.0f, 10.0f, 10.0f);
+
+    // 벡터 덧셈 실행 (NASM의 addps와 대응)
+    __m128 result = _mm_add_ps(a, b);
+
+    // 결과 확인을 위해 배열로 변환
+    float f[4];
+    _mm_storeu_ps(f, result);
+
+    printf("Result: %f %f %f %f\n", f[0], f[1], f[2], f[3]);
+
+    return 0;
+}
+```
+
+* 예제: C# P/Invoke (외부 어셈블리 호출) 방식
+  - 다음 코드를 `nasm -f win64 my_lib.asm -o my_lib.obj`로 어셈블 하여 DLL 생성
+
+```
+; 64비트 리눅스/윈도우 호출 규약 (윈도우는 RCX, RDX 사용)
+section .text
+global add_numbers
+
+add_numbers:
+    mov rax, rcx    ; 첫 번째 인자 (a)
+    add rax, rdx    ; 두 번째 인자 (b)를 더함
+    ret             ; 결과는 rax에 담겨 반환됨
+```
+
+```
+using System;
+using System.Runtime.InteropServices;
+
+class Program
+{
+    // DLL에서 함수 호출을 선언 (P/Invoke)
+    [DllImport("my_lib.dll", CallingConvention = CallingConvention.Cdecl)]
+    public static extern long add_numbers(long a, long b);
+
+    static void Main()
+    {
+        long result = add_numbers(15, 25);
+        Console.WriteLine($"어셈블리 호출 결과: {result}");
+    }
+}
+```
+
+* 예제: C# Hardware Intrinsics (하드웨어 내장 함수) 방식 (추천하는 방식)
+
+```
+using System;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86; // x86/x64 전용 명령어 모음
+
+class Program
+{
+    static void Main()
+    {
+        // SSE를 사용한 4개 숫자 동시 덧셈 (SIMD)
+        if (Sse2.IsSupported)
+        {
+            // 4개의 32비트 정수 벡터 생성
+            Vector128<int> vecA = Vector128.Create(1, 2, 3, 4);
+            Vector128<int> vecB = Vector128.Create(10, 20, 30, 40);
+
+            // paddd (Packed Add Doubleword) 명령어와 1:1 대응
+            Vector128<int> resultVec = Sse2.Add(vecA, vecB);
+
+            Console.WriteLine($"벡터 덧셈 결과: {resultVec}");
+        }
+        else
+        {
+            Console.WriteLine("이 CPU는 SSE2를 지원하지 않습니다.");
+        }
+    }
+}
+```
+
+### C# Hardware Intrinsics
+
+* C#의 Hardware Intrinsics는 NASM에서 사용하는 기계어 명령어와 거의 1:1로 매핑되도록 설계되어 있음
+  - C# 개발자는 별도의 DLL 호출(P/Invoke) 없이도 소스 코드 내에서 직접 CPU의 특수 기능을 활용할 수 있음
+
+1. 부동소수점 산술 연산 (Floating Point)
+   - 이 명령어들은 System.Runtime.Intrinsics.X86 네임스페이스 아래의 Sse, Sse2, Avx 클래스에 포함되어 있음
+     | 기능 | NASM 명령어 | C# Intrinsic 메서드 | 레지스터 타입 |
+     | ---- | ----------- | ------------------- | ------------- |
+     | 단정밀도 덧셈 | `addss` (Scalar) | `Sse.AddScalar(v1, v2)` | `Vector128<float>` |
+     | 배정밀도 덧셈 | `addsd` (Scalar) | `Sse2.AddScalar(v1, v2)` | `Vector128<double>` |
+     | 벡터 단정밀도 합 | `addps` (Packed) | `Sse.Add(v1, v2)` | `Vector128<float>` |
+     | 벡터 배정밀도 합 | `vaddpd` (AVX) | `Avx.Add(v1, v2)` | `Vector256<double>` |
+     | 제곱근 계산 | `sqrtps` | `Sse.Sqrt(v1)` | `Vector128<float>` |
+     | 최대값 선택 | `maxps` | `Sse.Max(v1, v2)` | `Vector128<float>` |
+
+2. 정수 벡터 연산 (Integer Vector)
+   - 정수 연산은 주로 Sse2와 Avx2 클래스에서 담당함
+     | 기능 | NASM 명령어 | C# Intrinsic 메서드 | 요소 크기 |
+     | ---- | ----------- | ------------------- | --------- |
+     | 8비트 정수 합 | `paddb` | `Sse2.Add(v1, v2)` | `Vector128<sbyte/byte>` |
+     | 32비트 정수 합 | `paddd` | `Sse2.Add(v1, v2)` | `Vector128<int/uint>` |
+     | 64비트 정수 합 | `vpaddq` (AVX2) | `Avx2.Add(v1, v2)` | `Vector256<long/ulong>` |
+     | 비트 논리곱 (AND) | `pand` | `Sse2.And(v1, v2)` | 공통 |
+     | 비트 시프트 (Left) | `pslld` | `Sse2.ShiftLeftLogical(v, count)` | `int` 기준 |
+
+3. 데이터 로드 및 이동 (Load & Move)
+   - 메모리에서 데이터를 가져오거나 레지스터 간에 데이터를 옮기는 작업
+     | 기능 | NASM 명령어 | C# Intrinsic 메서드 | 특징 |
+     | ---- | ----------- | ------------------- | ---- |
+     | 정렬된 로드 | `movaps` | `Sse.LoadAlignedVector128(ptr)` | 16/32바이트 정렬 필수 |
+     | 비정렬 로드 | `movups` | `Sse.LoadVector128(ptr)` | 정렬 제한 없음 |
+     | 스칼라 정수 이동 | `movd` / `movq` | `Sse2.ConvertToInt32(v)` | 레지스터 --> 일반 변수 |
+     | 상수 벡터 생성 | (여러 명령 조합) | `Vector128.Create(val)` | 모든 요소 동일 값 채우기 |
+
+4. 실제 코드 비교 예시
+  - 두 개의 float 배열(4개 요소)을 더하는 작업을 NASM과 C# Intrinsics로 비교
+
+    * NASM 예시
+
+    ```
+    movups xmm0, [rsi]      ; 첫 번째 배열 로드 (비정렬 가능)
+    movups xmm1, [rdi]      ; 두 번째 배열 로드
+    addps  xmm0, xmm1       ; 4개의 float 동시 덧셈
+    movups [rdx], xmm0      ; 결과 저장
+    ```
+
+    * C# Intrinsics 예시
+
+    ```
+    using System.Runtime.Intrinsics;
+    using System.Runtime.Intrinsics.X86;
+
+    // unsafe 문맥 내에서 포인터 사용 가능
+    public unsafe void VectorAdd(float* a, float* b, float* res)
+    {
+        // movups 대응
+        Vector128<float> v1 = Sse.LoadVector128(a);
+        Vector128<float> v2 = Sse.LoadVector128(b);
+
+        // addps 대응
+        Vector128<float> result = Sse.Add(v1, v2);
+
+        // movups (store) 대응
+        Sse.Store(res, result);
+    }
+    ```
