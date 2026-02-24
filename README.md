@@ -1068,81 +1068,174 @@ _start:
 
 ### 데이터 전송 명령어
 
-* XMM 레지스터에 저장하는 명령어
-  - `movss`: Moves a single-precision floating-point value between the XMM registers or between an XMM register and memory. (... 피연산자에 대한 설명 추가)
-  - `movsd`: Moves double-precision floating-point value between the XMM registers or between an XMM register and memory. (... 피연산자에 대한 설명 추가)
+* FPU 관련 명령어: FPU 내부에는 `st0`, `st1`, ... `st7`까지의 레지스터가 있으며 push를 하면 숫자가 큰 레지스터 쪽으로 밀려나고, pop을 하면 `st0`의 값을 가져오게 됨 (레지스터에 들어가면 무조건 80비트 사이즈가 됨)
+  - `fld [mem]` (Load): 메모리에 있는 실수(float/double) 값을 FPU 스택 top(`st0`)에 push
+  - `fild [mem]` (Integer Load): 메모리에 있는 정수를 가져와서 실수로 변환하고 FPU 스택 top(`st0`)에 push
+  - `fldpi [mem]` / `fldz [mem]`: pi(3.14...)나 0.0 같은 상수를 즉시 `st0`에 로드
+  - `fst [mem]` (Store): `st0` 값을 메모리에 저장 (Pop 안함)
+  - `fstp [mem]` (Store and Pop): `st0` 값을 메모리에 저장하고 스택에서 제거
+  - `fistp [mem]` (Integer Store): `st0` 값을 실수에서 정수로 변환하고 메모리에 저장한 후에 스택에서 제거
+  - 예제 코드
+    ```
+    section .data
+        a dd 1.5
+        b dd 2.5
+        res dd 0.0
+
+    section .text
+        ; 1. 변수 a를 로드
+        fld dword [a]    ; 스택: [ 1.5 ] (st0=1.5)
+
+        ; 2. 변수 b를 로드
+        fld dword [b]    ; 스택: [ 2.5, 1.5 ] (st0=2.5, st1=1.5)
+
+        ; 3. 두 수 더하기
+        faddp st1, st0   ; st0와 st1을 더하고 pop. 결과는 st0에 남음
+                         ; 스택: [ 4.0 ] (st0=4.0)
+
+        ; 4. 결과를 메모리에 저장하고 스택 비우기
+        fstp dword [res] ; res = 4.0, 스택: [ ] (Empty)
+        ```
+
+* XMM 레지스터에 저장하는 명령어 (SSE)
+  - `movss`: 32비트 float 1개 저장 (레지스터 하위 32비트만 사용)
+  - `movsd`: 64비트 double 1개 저장 (레지스터 하위 64비트만 사용)
+  - `movaps`: 128비트 Packed Single 이동 (Aligned), 메모리 주소가 16배수여야 함 (빠름)
+  - `movups`: 128비트 Packed Single 이동 (Unaligned), 주소 제한 없음 (약간 느릴 수 있음)
+  - `movapd`: 128비트 Packed Double 이동 (Aligned), 메모리 주소가 16배수여야 함 (빠름)
+  - `movupd`: 128비트 Packed Double 이동 (Unaligned), 주소 제한 없음 (약간 느릴 수 있음)
+  - `movd`: 32비트 정수를 일반 레지스터 <--> XMM 이동
+  - `movq`: 64비트 정수를 일반 레지스터 <--> XMM 이동
+  - `movdqa`: 128비트 정수 벡터 이동 (Aligned)
+  - `movdqu`: 128비트 정수 벡터 이동 (Unaligned)
   - ...
-  - `movdqd`
-  - `movaps`
-  - `movups`
+
+* YMM 레지스터에 저장하는 명령어 (AVX)
+  - `vmovss` / `vmovsd`: AVX 버전의 스칼라 실수 이동 (기존 SSE와 유사하나 v 접두사 사용)
+  - `vmovaps`: 256비트 정렬된 실수 벡터 이동 (메모리 주소가 32배수여야 함)
+  - `vmovups`: 256비트 정렬되지 않은 실수 벡터 이동 (주소 제한 없음)
+  - `vmovdqa`: 256비트 정렬된 정수 벡터 이동 (YMM 레지스터 전체(32바이트) 사용)
+  - `vmovdqu`: 256비트 정렬되지 않은 정수 벡터 이동 (정수 데이터 전용)
   - ...
-  - `movhlps`: Moves two-packed single-precision floating-point values from the high quadword of an XMM register to the low quadword of another XMM register. (... 피연산자에 대한 설명 추가)
-  - `movlhps`: Moves two-packed single-precision floating-point values from the low quadword of an XMM register to the high quadword of another XMM register. (... 피연산자에 대한 설명 추가)
-  - `fld` (Load): 1번째 피연산자인 메모리 값을 FPU 스택 top(`st0`)에 push (메모리 -> 스택 레지스터)
-  - `fst` (Store): `st0` 값을 1번째 피연산자인 메모리에 복사 (스택 레지스터 -> 메모리)
-  - `fstp` (Store and Pop): `st0` 값을 1번째 피연산자인 메모리에 저장하고 스택에서 제거
-  - `fild` (Integer Load): 
-  - `fistp` (Integer Store)
+
+* 예제
+  ```
+  section .data
+      float_val  dd 3.14          ; 32비트 실수
+      double_val dq 2.71828       ; 64비트 실수
+      align 32
+      vector_val dd 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0 ; 256비트용
+
+  section .text
+      global _start
+
+  _start:
+      ; 1. SSE Scalar Load
+      movss xmm0, [float_val]     ; float 로드
+      movsd xmm1, [double_val]    ; double 로드
+
+      ; 2. AVX Packed Load (Aligned)
+      ; 메모리 주소가 32바이트로 정렬되어 있어야 vmovaps 사용 가능
+      vmovaps ymm0, [vector_val]  ; 8개의 float을 한 번에 YMM0에 로드
+
+      ; 3. Store
+      vmovups [rsp-32], ymm0      ; 스택에 256비트 데이터 저장 (정렬 보장 안될 때 u 사용)
+
+      ; 종료 (Linux syscall)
+      mov eax, 60
+      xor edi, edi
+      syscall
+  ```
 
 ### 연산 명령어
 
-* 산술 연산 (... 그 외 연산자들은?)
-  - `addss`: Adds single-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - `addsd`: Adds double-precision floating point values. (... 피연산자에 대한 설명 추가)
-  - `addps`
-  - `addpd`
-  - `paddd`
-  - `paddb`
-  - `vaddps`
-  - `vaddpd`
-  - `subss`: Subtracts single-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - `subsd`: Subtracts double-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - ...
-  - `mulss`: Multiplies single-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - `mulsd`: Multiplies double-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - ...
-  - `divss`: Divides single-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - `divsd`: Divides double-precision floating-point values. (... 피연산자에 대한 설명 추가)
-  - ...
-  - `sqrtss`
-  - `sqrtsd`
-  - ...
-  - `maxss`
-  - `maxsd`
-  - ...
-  - `minss`
-  - `minsd`
-  - ...
-  - `pmaxs(q|d|w|b)`
-  - `pmaxu(q|d|w|b)`
-  - `pmins(q|d|w|b)`
-  - `pminu(q|d|w|b)`
-  - `round` ???
-  - `fadd`
-  - `fiadd`
-  - `fsub`
-  - `fisub`
-  - `fimul`
-  - `fidiv`
-  - `fabs`
+* SSE/AVX 부동소수점 산술 연산
+  | 명령어 | 설명 | 피연산자 특징 |
+  | ------ | ---- | ------------- |
+  | `addss` / `subss`| Single Scalar 더하기/빼기 | xmm1(하위32bit) + xmm2/mem32 |
+  | `addsd` / `subsd`| Double Scalar 더하기/빼기 | xmm1(하위64bit) + xmm2/mem64 |
+  | `addps` / `subps`| Packed Single 더하기/빼기 | xmm1(128bit 전체, 4개) + xmm2/mem128 |
+  | `addpd` / `subpd`| Packed Double 더하기/빼기 | xmm1(128bit 전체, 2개) + xmm2/mem128 |
+  | `mulss` / `divss`| Single Scalar 곱하기/나누기 | 위와 동일, 결과는 dest에 저장 |
+  | `mulsd` / `divsd`| Double Scalar 곱하기/나누기 | 위와 동일 |
+  | `sqrtss` / `sqrtsd`| 제곱근 (Root) 계산 | dest = sqrt(src) |
+  | `maxss` / `minss`| 최대값/최소값 선택 | dest = (dest > src) ? dest : src |
+  | `vaddps` / `vaddpd`| AVX 버전 벡터 더하기 | ymm1 = ymm2 + ymm3/mem256 (3개 피연산자) |
+
+* SSE/AVX 정수 벡터 연산
+  | 명령어 | 설명 | 피연산자 특징 |
+  | ------ | ---- | ------------- |
+  | `paddd` | Packed Add Doubleword | 32비트 정수 4개를 동시에 더함 |
+  | `paddb` | Packed Add Byte | 8비트 정수 16개를 동시에 더함 |
+  | `pmaxs(q/d/w/b)` | Packed Max Signed | 부호 있는 정수 중 큰 값 선택 (q=64, d=32, w=16, b=8 bit) |
+  | `pmaxu(q/d/w/b)` | Packed Max Unsigned | 부호 없는 정수 중 큰 값 선택 |
+  | `pmins` / `pminu` | Packed Min | 위와 동일하게 최소값 선택 |
+
+* 반올림 및 정밀도 제어
+  - `roundss`, `roundsd`, `roundps`, `roundpd`
+  - 예제
+    `roundss xmm1, xmm2, imm8`: xmm2의 실수값을 imm8에 지정된 방식(반올림, 내림, 올림 등)으로 처리하여 xmm1에 저장합니다.
+    * 주요 모드(imm8)
+      - 0: 가장 가까운 정수 (반올림)
+      - 1: 내림 (Floor)
+      - 2: 올림 (Ceiling)
+      - 3: 버림 (Truncate)
+
+* FPU (x87) 산술 연산
+  | 명령어 | 설명 | 피연산자 특징 |
+  | ------ | ---- | ------------- |
+  | `fadd` | 부동소수점 더하기 | fadd st0, st1 또는 fadd [mem] |
+  | `fiadd` | Integer 더하기 | 메모리의 정수를 가져와서 st0에 더함 |
+  | `fsub` | 부동소수점 빼기 | st0 = st0 - st1 |
+  | `fisub` | Integer 빼기 | st0 = st0 - (int)mem |
+  | `fimul` | Integer 곱하기 | st0 = st0 * (int)mem |
+  | `fidiv` | Integer 나누기 | st0 = st0 / (int)mem |
+  | `fabs` | 절대값 (Absolute) | st0의 부호 비트를 강제로 0으로 바꿈 |
 
 ### 분기 명령어
 
-* 비교 연산
-  - `cmpss`: 1번째 피연산자와 2번째 피연산자와의 관계를 3번째 피연산자에 저장함
-    | 3번째 피연산자 값 | 의미 |
-    | ----------------- | ---- |
-    | 0 | == |
-    | 1 | < |
-    | 2 | <= |
-    | 3 | 둘 중 하나의 피연산자가 NaN (Not a Number) |
-    | 4 | != |
-    | 5 | >= |
-    | 6 | > |
-    | 7 | 두 피연산자 모두 NaN (Not a Number) |
+* SSE/AVX 스칼라 비교 (조건문용)
+  | 명령어 | 대상 | 설명 |
+  | ------ | ---- | ---- |
+  | `ucomiss` | Single | xmm1과 xmm2/mem32 비교 (Unordered 비교) |
+  | `ucomisd` | Double | xmm1과 xmm2/mem64 비교 |
+  | `comiss` / `comisd` | S/D위와 같으나, 숫자가 아닌 값(NaN)이 있을 때 예외를 발생시킴 |
+  - 예제
+    ```
+    ucomiss xmm0, xmm1  ; xmm0와 xmm1 비교
+    ja .greater         ; xmm0 > xmm1 이면 점프
+    ```
+
+* SSE/AVX 벡터 비교 (마스크 생성용)
+  - 여러 개의 데이터를 한꺼번에 비교할 때 사용하며, 결과로 비트 마스크를 생성합니다. (참이면 모든 비트가 1, 거짓이면 0)
+    | 명령어 | 의미 | 설명 |
+    | ------ | ---- | ---- |
+    | `cmpss` / `cmpsd` | Scalar | 단일 값 비교 후 결과를 dest 하위에 마스크로 저장 |
+    | `cmpps` / `cmppd` | Packed | 벡터 전체를 비교 후 각 칸에 마스크 저장 |
+  - 비교 조건(Predicate): 명령어 뒤에 숫자를 붙여 조건을 정함
+    * 0: Equal (==)
+    * 1: Less Than (<)
+    * 2: Less or Equal (<=)
+    * 3: Unordered (unord) - NaN 여부 확인
+    * 4: Not Equal (!=)
+    * 5: Greater or Equal (>=)
+    * 6: Greater (>)
+    * 7: 두 피연산자 모두 NaN
+
+* AVX 전용 비교 (`vcmpps` 등)
+  - AVX에서는 3개 이상의 피연산자를 지원하며, 비교 조건을 숫자가 아닌 문자로 명시할 수 있어 훨씬 직관적임
+  - `vcmpps ymm1, ymm2, ymm3, 0`: ymm2와 ymm3를 비교해서 결과를 ymm1에 마스크로 저장
+
+* FPU (x87) 비교 연산
+  - FPU 스택 내의 값을 비교
+    | 명령어 | 설명 |
+    | ------ | ---- |
+    | `fcom` / `fcomp` | st0와 st1을 비교 (p가 붙으면 비교 후 pop) |
+    | `ficom` | st0와 메모리의 정수를 비교 |
+    | `fcomi` | 비교 결과를 즉시 CPU 플래그(EFLAGS)에 반영 (현대적 방식) |
+    | `ftst` | st0가 0.0인지 확인 (Test) |
 
 
 
-... 1. 실수 관련 명령어 다 정리할 것
 
-... 2. 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md --> 고급 언어에서 asm 임베딩하기
+... 고급기술 -- https://github.com/0xAX/asm/blob/master/content/asm_7.md --> 고급 언어에서 asm 임베딩하기
