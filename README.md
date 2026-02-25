@@ -1025,9 +1025,19 @@ _start:
   - SSE와 AVX 연산의 전반적인 행동 지침을 결정하는 32비트 레지스터
     | 비트 범위 | 이름 | 풀네임 | 설명 및 역할 |
     | --------- | ---- | ------ | ------------ |
-    | Bit 0-5   | Flags | Exception Flags | 연산 중 발생한 예외 기록 (0으로 나누기, 오버플로 등) |
+    | Bit 0     | IE    | Invalid Operation Exception | 유효하지 않은 연산 예외 발생 |
+    | Bit 1     | DE    | Denormal Exception | 비정규화된 피연산자 사용 (일부 환경) |
+    | Bit 2     | ZE    | Divide-by-zero Exception | 0으로 나누기 예외 발생 |
+    | Bit 3     | OE    | Overflow Exception | 오버플로우 예외 발생, 결과가 너무 커서 표현 불가능 |
+    | Bit 4     | UE    | Underflow Exception | 언더플로우 예외 발생, 결과가 너무 작아서 표현 불가능 |
+    | Bit 5     | PE    | Precision Exception | 결과가 정확하지 않아 반올림됨 |
     | Bit 6     | DAZ   | Denormals Are Zeros | [성능] 입력값이 너무 작은 수(Denormal)면 0으로 간주 |
-    | Bit 7-12  | Masks | Exception Masks | 특정 예외가 발생했을 때 프로그램이 멈추지 않게 마스킹 |
+    | Bit 7     | IM    | Invalid Operation Mask | 잘못된 연산 마스크 [1: 마스킹(무시), 0: 예외 발생(마스크 해제)] |
+    | Bit 8     | DM    | Denormal Exception Mask | 비정규화 피연산자 마스크 [1: 마스킹(무시), 0: 예외 발생(마스크 해제)] |
+    | Bit 9     | ZM    | Divide-by-zero Exception Mask | 0으로 나누기 마스크 [1: 마스킹(무시), 0: 예외 발생(마스크 해제)] |
+    | Bit 10    | OM    | Overflow Exception Mask | 오버플로우(범위 초과) 마스크 [1: 마스킹(무시), 0: 예외 발생(마스크 해제)] |
+    | Bit 11    | UM    | Underflow Exception Mask | 언더플로우(범위 미달) 마스크 [1: 마스킹(무시), 0: 예외 발생(마스크 해제)] |
+    | Bit 12    | PM    | Precision Mask | 정밀도(반올림 오류) 마스크 [1: 마스킹(무시), 0: 예외 발생(마스크 해제)] |
     | Bit 13-14 | RC    | Rounding Control | 반올림 방식 결정 (00:반올림, 01:내림, 10:올림, 11:버림) |
     | Bit 15    | FTZ   | Flush To Zero | [성능] 연산 결과가 너무 작은 수면 강제로 0으로 처리 |
   - 관련 명령어
